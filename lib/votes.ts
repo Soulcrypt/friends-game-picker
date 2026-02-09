@@ -52,45 +52,35 @@ export async function voteForGame(gameId: string, sessionId: string): Promise<{ 
     .single()
 
   if (existingVote) {
+    // Remove the vote - trigger will update count automatically
     await supabase
       .from('votes')
       .delete()
       .eq('game_id', gameId)
       .eq('session_id', sessionId)
 
+    // Fetch updated vote count
     const { data: game } = await supabase
       .from('games')
       .select('votes')
       .eq('id', gameId)
       .single()
 
-    const newVotes = Math.max(0, (game?.votes || 0) - 1)
-
-    await supabase
-      .from('games')
-      .update({ votes: newVotes })
-      .eq('id', gameId)
-
-    return { votes: newVotes, voted: false }
+    return { votes: game?.votes || 0, voted: false }
   } else {
+    // Add the vote - trigger will update count automatically
     await supabase
       .from('votes')
       .insert({ game_id: gameId, session_id: sessionId })
 
+    // Fetch updated vote count
     const { data: game } = await supabase
       .from('games')
       .select('votes')
       .eq('id', gameId)
       .single()
 
-    const newVotes = (game?.votes || 0) + 1
-
-    await supabase
-      .from('games')
-      .update({ votes: newVotes })
-      .eq('id', gameId)
-
-    return { votes: newVotes, voted: true }
+    return { votes: game?.votes || 0, voted: true }
   }
 }
 
@@ -148,17 +138,9 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
 }
 
 export async function removeGame(gameId: string): Promise<boolean> {
-  // Remove votes first
-  await supabase
-    .from('votes')
-    .delete()
-    .eq('game_id', gameId)
-
-  // Remove reactions
-  await supabase
-    .from('reactions')
-    .delete()
-    .eq('game_id', gameId)
+  // Note: With secure RLS policies, game deletion is disabled for anonymous users.
+  // Games can only be deleted via Supabase dashboard with service_role key.
+  // This function will fail silently - which is the intended secure behavior.
 
   const { error } = await supabase
     .from('games')
@@ -166,7 +148,7 @@ export async function removeGame(gameId: string): Promise<boolean> {
     .eq('id', gameId)
 
   if (error) {
-    console.error('Error removing game:', error)
+    console.error('Game deletion blocked by security policy (this is expected):', error.message)
     return false
   }
 
