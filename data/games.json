@@ -1,0 +1,98 @@
+[
+  {
+    "id": "darktide",
+    "title": "Warhammer 40,000: Darktide",
+    "cover": "/covers/darktide.jpg",
+    "tags": ["FPS", "Co-op"],
+    "price": "Free",
+    "votes": 0
+  },
+  {
+    "id": "helldivers2",
+    "title": "Helldivers 2",
+    "cover": "/covers/helldivers2.jpg",
+    "tags": ["Co-op", "Shooter"],
+    "price": "$40",
+    "votes": 0
+  },
+  {
+    "id": "sonsforest",
+    "title": "Sons of the Forest",
+    "cover": "/covers/sonsforest.jpg",
+    "tags": ["Survival", "Horror", "Co-op"],
+    "price": "$30",
+    "votes": 0
+  },
+  {
+    "id": "deeprock",
+    "title": "Deep Rock Galactic",
+    "cover": "/covers/deeprock.jpg",
+    "tags": ["Co-op", "Shooter", "FPS"],
+    "price": "$30",
+    "votes": 0
+  },
+  {
+    "id": "lethal",
+    "title": "Lethal Company",
+    "cover": "/covers/lethal.jpg",
+    "tags": ["Horror", "Co-op"],
+    "price": "$10",
+    "votes": 0
+  },
+  {
+    "id": "phasmophobia",
+    "title": "Phasmophobia",
+    "cover": "/covers/phasmophobia.jpg",
+    "tags": ["Horror", "Co-op"],
+    "price": "$14",
+    "votes": 0
+  },
+  {
+    "id": "valheim",
+    "title": "Valheim",
+    "cover": "/covers/valheim.jpg",
+    "tags": ["Survival", "Co-op", "RPG"],
+    "price": "$20",
+    "votes": 0
+  },
+  {
+    "id": "l4d2",
+    "title": "Left 4 Dead 2",
+    "cover": "/covers/l4d2.jpg",
+    "tags": ["Co-op", "Shooter", "FPS"],
+    "price": "$10",
+    "votes": 0
+  },
+  {
+    "id": "palworld",
+    "title": "Palworld",
+    "cover": "/covers/palworld.jpg",
+    "tags": ["Survival", "Co-op"],
+    "price": "$30",
+    "votes": 0
+  },
+  {
+    "id": "rust",
+    "title": "Rust",
+    "cover": "/covers/rust.jpg",
+    "tags": ["Survival", "Shooter"],
+    "price": "$40",
+    "votes": 0
+  },
+  {
+    "id": "7days",
+    "title": "7 Days to Die",
+    "cover": "/covers/7days.jpg",
+    "tags": ["Survival", "Horror", "Co-op"],
+    "price": "$25",
+    "votes": 0
+  },
+  {
+    "id": "theforest",
+    "title": "The Forest",
+    "cover": "/covers/theforest.jpg",
+    "tags": ["Survival", "Horror", "Co-op"],
+    "price": "$20",
+    "votes": 0
+  }
+]

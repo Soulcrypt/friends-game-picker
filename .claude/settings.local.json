@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npx next build:*)",
+      "Bash(node:*)",
+      "Bash(del \"C:\\\\friends-game-picker\\\\add-games.mjs\")",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
