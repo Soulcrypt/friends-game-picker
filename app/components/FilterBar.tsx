@@ -20,9 +20,11 @@ import {
   HiSortDescending,
   HiSortAscending,
   HiX,
+  HiMenu,
 } from 'react-icons/hi'
 import { FaGamepad } from 'react-icons/fa'
 import type { ViewMode, CardSize, FilterPreset } from '@/lib/types'
+import MobileMenu from './MobileMenu'
 
 interface FilterBarProps {
   searchTerm: string
@@ -92,6 +94,7 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
   onDeletePreset,
 }, ref) {
   const [showMoreFilters, setShowMoreFilters] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Organize filters into categories (deduplicated)
   const playerModeFilters = PLAYER_MODE_FILTERS.filter(f => availableFilters.includes(f))
@@ -133,80 +136,121 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
   )
 
   return (
-    <div className="sticky top-0 z-20 pb-4">
-      <div className="glass-strong rounded-2xl p-4 sm:p-5 space-y-4">
-        {/* Header row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-none">
-              <span className="text-gradient">What are we playing?</span>
-            </h1>
-            <p className="text-[11px] text-white/30 mt-1 uppercase tracking-widest font-medium">
-              {gameCount} {gameCount === 1 ? 'game' : 'games'} in the pool
-            </p>
-          </div>
+    <>
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        cardSize={cardSize}
+        onCardSizeChange={onCardSizeChange}
+        sortBy={sortBy}
+        onSortChange={onSortChange}
+        groupBy={groupBy}
+        onGroupByChange={onGroupByChange}
+        onRefreshAll={onRefreshAll}
+        onImport={onImport}
+        onShare={onShare}
+        onPickForUs={onPickForUs}
+        isRefreshing={isRefreshing}
+        gameCount={gameCount}
+        activeFilters={activeFilters}
+        onToggleFilter={onToggleFilter}
+        availableFilters={availableFilters}
+        filterPresets={filterPresets}
+        onSavePreset={onSavePreset}
+        onLoadPreset={onLoadPreset}
+        onDeletePreset={onDeletePreset}
+      />
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Secondary actions */}
-            <div className="flex items-center gap-1.5">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onRefreshAll}
-                disabled={gameCount === 0 || isRefreshing}
-                className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
-                title="Refresh all games"
-              >
-                <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onImport}
-                className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors"
-                title="Import games"
-              >
-                <HiUpload className="w-4 h-4" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onShare}
-                disabled={gameCount === 0}
-                className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
-                title="Share collection"
-              >
-                <HiShare className="w-4 h-4" />
-              </motion.button>
+      <div className="sticky top-0 z-20 pb-4">
+        <div className="glass-strong rounded-2xl p-4 sm:p-5 space-y-4">
+          {/* Header row */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight leading-none truncate">
+                <span className="text-gradient">What are we playing?</span>
+              </h1>
+              <p className="text-[11px] text-white/30 mt-1 uppercase tracking-widest font-medium">
+                {gameCount} {gameCount === 1 ? 'game' : 'games'} in the pool
+              </p>
             </div>
 
-            {/* Primary actions */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onPickForUs}
-              disabled={gameCount === 0}
-              className="glass glass-hover rounded-xl px-3 py-2 text-sm font-medium text-white/70 hover:text-white flex items-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <HiSparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Pick For Us</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onAddGame}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-white flex items-center gap-2"
-              style={{
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-                boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
-              }}
-            >
-              <HiPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Game</span>
-            </motion.button>
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Secondary actions - hidden on mobile */}
+              <div className="hidden sm:flex items-center gap-1.5">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onRefreshAll}
+                  disabled={gameCount === 0 || isRefreshing}
+                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                  title="Refresh all games"
+                >
+                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onImport}
+                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors"
+                  title="Import games"
+                >
+                  <HiUpload className="w-4 h-4" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onShare}
+                  disabled={gameCount === 0}
+                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                  title="Share collection"
+                >
+                  <HiShare className="w-4 h-4" />
+                </motion.button>
+              </div>
+
+              {/* Pick For Us - hidden on mobile (available in menu) */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onPickForUs}
+                disabled={gameCount === 0}
+                className="hidden sm:flex glass glass-hover rounded-xl px-3 py-2 text-sm font-medium text-white/70 hover:text-white items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <HiSparkles className="w-4 h-4" />
+                <span>Pick For Us</span>
+              </motion.button>
+
+              {/* Add Game button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onAddGame}
+                className="rounded-xl px-3 sm:px-4 py-2 text-sm font-medium text-white flex items-center gap-2 min-h-[44px]"
+                style={{
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
+                  boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
+                }}
+              >
+                <HiPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add Game</span>
+              </motion.button>
+
+              {/* Mobile menu button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setMobileMenuOpen(true)}
+                className="sm:hidden glass glass-hover rounded-xl p-2.5 text-white/70 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                title="Menu"
+              >
+                <HiMenu className="w-5 h-5" />
+              </motion.button>
+            </div>
           </div>
-        </div>
 
         {/* Search bar */}
         <div className="relative">
@@ -229,8 +273,8 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           )}
         </div>
 
-        {/* Filters section */}
-        <div className="space-y-3">
+        {/* Filters section - hidden on mobile (available in menu) */}
+        <div className="hidden sm:block space-y-3">
           {/* Quick filters row - Player modes and price */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Price filters */}
@@ -302,8 +346,23 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           )}
         </div>
 
-        {/* Toolbar row */}
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/[0.04]">
+        {/* Mobile active filters indicator */}
+        {activeFilters.length > 0 && (
+          <div className="sm:hidden flex items-center justify-between">
+            <span className="text-xs text-white/40">
+              {activeFilters.length} filter{activeFilters.length !== 1 ? 's' : ''} active
+            </span>
+            <button
+              onClick={() => activeFilters.forEach(f => onToggleFilter(f))}
+              className="text-xs text-purple-400 hover:text-purple-300"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
+        {/* Toolbar row - hidden on mobile (available in menu) */}
+        <div className="hidden sm:flex items-center justify-between gap-3 pt-2 border-t border-white/[0.04]">
           <div className="flex items-center gap-2 flex-wrap">
             {/* View mode */}
             <div className="flex items-center glass rounded-lg overflow-hidden">
@@ -429,6 +488,7 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
         </div>
       </div>
     </div>
+    </>
   )
 })
 

@@ -133,3 +133,18 @@ body {
   --normal-border: rgba(255, 255, 255, 0.1) !important;
   --normal-text: #fff !important;
 }
+
+/* Mobile bottom sheet styles */
+@layer utilities {
+  .touch-action-none {
+    touch-action: none;
+  }
+}
+
+/* Ensure minimum touch target size on mobile */
+@media (max-width: 640px) {
+  .min-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
