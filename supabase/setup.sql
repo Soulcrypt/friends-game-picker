@@ -10,10 +10,76 @@ CREATE TABLE IF NOT EXISTS games (
   price TEXT NOT NULL DEFAULT 'TBD',
   votes INTEGER DEFAULT 0,
   rawg_id INTEGER,
+  steam_appid INTEGER,
   trailer_url TEXT,
   metacritic INTEGER,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  screenshots TEXT[],
+  description TEXT,
+  short_description TEXT,
+  platforms JSONB,
+  release_date TEXT,
+  developers TEXT[],
+  publishers TEXT[],
+  categories TEXT[],
+  -- Multi-source game data
+  primary_source TEXT DEFAULT 'steam',
+  igdb_id INTEGER,
+  epic_id TEXT,
+  xbox_id TEXT,
+  gog_id INTEGER,
+  platform_availability JSONB
 );
+
+-- Add columns if they don't exist (for existing databases)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'steam_appid') THEN
+    ALTER TABLE games ADD COLUMN steam_appid INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'screenshots') THEN
+    ALTER TABLE games ADD COLUMN screenshots TEXT[];
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'description') THEN
+    ALTER TABLE games ADD COLUMN description TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'short_description') THEN
+    ALTER TABLE games ADD COLUMN short_description TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'platforms') THEN
+    ALTER TABLE games ADD COLUMN platforms JSONB;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'release_date') THEN
+    ALTER TABLE games ADD COLUMN release_date TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'developers') THEN
+    ALTER TABLE games ADD COLUMN developers TEXT[];
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'publishers') THEN
+    ALTER TABLE games ADD COLUMN publishers TEXT[];
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'categories') THEN
+    ALTER TABLE games ADD COLUMN categories TEXT[];
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'primary_source') THEN
+    ALTER TABLE games ADD COLUMN primary_source TEXT DEFAULT 'steam';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'igdb_id') THEN
+    ALTER TABLE games ADD COLUMN igdb_id INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'epic_id') THEN
+    ALTER TABLE games ADD COLUMN epic_id TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'xbox_id') THEN
+    ALTER TABLE games ADD COLUMN xbox_id TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'gog_id') THEN
+    ALTER TABLE games ADD COLUMN gog_id INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'games' AND column_name = 'platform_availability') THEN
+    ALTER TABLE games ADD COLUMN platform_availability JSONB;
+  END IF;
+END $$;
 
 -- Create votes table
 CREATE TABLE IF NOT EXISTS votes (
@@ -90,3 +156,7 @@ INSERT INTO games (id, title, cover, tags, price, votes) VALUES
   ('7days', '7 Days to Die', '/covers/7days.jpg', ARRAY['Survival', 'Horror', 'Co-op'], '$25', 0),
   ('theforest', 'The Forest', '/covers/theforest.jpg', ARRAY['Survival', 'Horror', 'Co-op'], '$20', 0)
 ON CONFLICT (id) DO NOTHING;
+
+-- Create index for IGDB lookups
+CREATE INDEX IF NOT EXISTS idx_games_igdb_id ON games(igdb_id) WHERE igdb_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_games_primary_source ON games(primary_source);

@@ -147,4 +147,352 @@ body {
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Larger touch targets for mobile buttons */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Improve text readability on mobile - minimum 12px font */
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    font-size: max(12px, 1rem);
+  }
+
+  /* Ensure minimum readable text sizes */
+  .text-\[10px\], .text-\[9px\] {
+    font-size: 12px !important;
+  }
+
+  .text-\[11px\] {
+    font-size: 12px !important;
+  }
+
+  .text-xs {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.4;
+  }
+}
+
+/* Mobile-optimized animations */
+@layer utilities {
+  /* Smoother card entrance animation */
+  .animate-card-enter {
+    animation: card-enter 0.3s ease-out forwards;
+  }
+
+  @keyframes card-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Pulse glow for top ranked games */
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+  }
+
+  /* Smooth bottom sheet animation */
+  .animate-slide-up {
+    animation: slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0.5;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* FAB bounce animation */
+  .animate-fab-bounce {
+    animation: fab-bounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes fab-bounce {
+    0% {
+      transform: scale(0);
+    }
+    70% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Ripple effect for touch feedback */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ripple:active::after {
+    width: 200%;
+    height: 200%;
+    opacity: 1;
+    transition: width 0.3s, height 0.3s, opacity 0.3s;
+  }
+}
+
+/* Store badge colors for consistent styling */
+@layer components {
+  .badge-steam {
+    background-color: rgba(27, 40, 56, 0.8);
+    color: #66C0F4;
+  }
+
+  .badge-epic {
+    background-color: rgba(42, 42, 42, 0.8);
+    color: white;
+  }
+
+  .badge-gog {
+    background-color: rgba(134, 50, 138, 0.8);
+    color: white;
+  }
+
+  .badge-xbox {
+    background-color: rgba(16, 124, 16, 0.8);
+    color: white;
+  }
+
+  .badge-gamepass {
+    background: linear-gradient(135deg, #107C10 0%, #0e6b0e 100%);
+    color: white;
+  }
+}
+
+/* Mobile search improvements */
+@media (max-width: 640px) {
+  /* Sticky search bar */
+  .sticky-search {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Better spacing for safe area */
+  .safe-area-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+
+  /* Prevent text zoom on iOS */
+  input[type="text"],
+  input[type="search"] {
+    font-size: 16px;
+  }
+}
+
+/* Performance optimizations */
+@layer utilities {
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .reduce-motion {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Page entrance animation */
+@layer utilities {
+  .animate-page-enter {
+    animation: page-enter 0.4s ease-out forwards;
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Staggered grid entrance */
+  .animate-stagger-in {
+    animation: stagger-in 0.3s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes stagger-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Smooth image fade-in */
+  .animate-image-fade {
+    animation: image-fade 0.4s ease-out forwards;
+  }
+
+  @keyframes image-fade {
+    from {
+      opacity: 0;
+      filter: blur(8px);
+    }
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+
+  /* Filter change transition */
+  .animate-filter-change {
+    animation: filter-change 0.2s ease-out;
+  }
+
+  @keyframes filter-change {
+    0% {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Skeleton loading shimmer - improved */
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Float animation for background orbs */
+  .animate-float {
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 25s ease-in-out infinite reverse;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) translateX(0);
+    }
+    25% {
+      transform: translateY(-20px) translateX(10px);
+    }
+    50% {
+      transform: translateY(0) translateX(20px);
+    }
+    75% {
+      transform: translateY(20px) translateX(10px);
+    }
+  }
+}
+
+/* Focus visible states for accessibility */
+@layer utilities {
+  .focus-visible-ring:focus-visible {
+    outline: 2px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 2px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 2px;
+  }
+}
+
+/* Consistent border radius scale */
+@layer utilities {
+  .rounded-card {
+    border-radius: 1rem; /* 16px */
+  }
+
+  .rounded-button {
+    border-radius: 0.75rem; /* 12px */
+  }
+
+  .rounded-badge {
+    border-radius: 0.5rem; /* 8px */
+  }
+
+  .rounded-chip {
+    border-radius: 9999px; /* pill */
+  }
+}
+
+/* Consistent spacing utilities */
+@layer utilities {
+  .space-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .space-card {
+    padding: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .space-card {
+      padding: 1.25rem;
+    }
+  }
 }

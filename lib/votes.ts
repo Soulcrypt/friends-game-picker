@@ -98,16 +98,25 @@ export async function updateGameCover(gameId: string, cover: string, rawgId?: nu
 
 export async function addGame(game: Partial<Game>): Promise<Game | null> {
   const slug = game.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') || ''
-  const id = game.id || (slug && game.rawg_id ? `${slug}-${game.rawg_id}` : slug) || uuidv4()
+  // Use igdb_id if no steam/rawg_id available
+  const sourceId = game.rawg_id || game.steam_appid || game.igdb_id
+  const id = game.id || (slug && sourceId ? `${slug}-${sourceId}` : slug) || uuidv4()
 
-  // Check for duplicate before inserting
-  const { data: existing } = await supabase
+  console.log('[addGame] Attempting to add:', { title: game.title, id, slug, sourceId })
+
+  // Check for duplicate by ID only
+  const { data: existingById, error: checkError } = await supabase
     .from('games')
-    .select('id')
+    .select('id, title')
     .eq('id', id)
-    .single()
+    .maybeSingle()  // Use maybeSingle to avoid error when no match
 
-  if (existing) {
+  if (checkError) {
+    console.error('[addGame] Error checking for duplicate:', checkError)
+  }
+
+  if (existingById) {
+    console.log('[addGame] Game already exists with ID:', existingById)
     return null
   }
 
@@ -119,9 +128,22 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
     price: game.price || 'TBD',
     votes: 0,
     rawg_id: game.rawg_id || undefined,
+    steam_appid: game.steam_appid || undefined,
     trailer_url: game.trailer_url || undefined,
     metacritic: game.metacritic || undefined,
+    screenshots: game.screenshots || undefined,
+    description: game.description || undefined,
+    platforms: game.platforms || undefined,
+    // Multi-source fields
+    primary_source: game.primary_source || 'steam',
+    igdb_id: game.igdb_id || undefined,
+    epic_id: game.epic_id || undefined,
+    xbox_id: game.xbox_id || undefined,
+    gog_id: game.gog_id || undefined,
+    platform_availability: game.platform_availability || undefined,
   }
+
+  console.log('[addGame] Inserting new game:', newGame)
 
   const { data, error } = await supabase
     .from('games')
@@ -130,10 +152,11 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
     .single()
 
   if (error) {
-    console.error('Error adding game:', error)
+    console.error('[addGame] Insert error:', error.message, error.details, error.hint)
     return null
   }
 
+  console.log('[addGame] Successfully added:', data?.title)
   return data
 }
 

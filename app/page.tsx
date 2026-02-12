@@ -27,9 +27,10 @@ import ImportModal from './components/ImportModal'
 import TrailerModal from './components/TrailerModal'
 import RecentlyAddedRow from './components/RecentlyAddedRow'
 import PickerModal from './components/PickerModal'
+import FloatingActionButton from './components/FloatingActionButton'
 import { getGames, voteForGame, getSessionId, getUserVotes, removeGame, restoreGame, updateGameCover } from '@/lib/votes'
 import { fetchSteamCoverByTitle } from '@/lib/steam'
-import type { Game, ViewMode, CardSize, FilterPreset } from '@/lib/types'
+import type { Game, ViewMode, CardSize, FilterPreset, GameSource } from '@/lib/types'
 import toast from 'react-hot-toast'
 import { HiPlus, HiOutlineCollection, HiAdjustments, HiChevronDown, HiChevronRight, HiX } from 'react-icons/hi'
 
@@ -56,6 +57,7 @@ export default function Home() {
   const [customOrder, setCustomOrder] = useState<string[]>([])
   const [isDragMode, setIsDragMode] = useState(false)
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>([])
+  const [activeSourceFilters, setActiveSourceFilters] = useState<GameSource[]>([])
 
   // Load filter presets from localStorage
   useEffect(() => {
@@ -305,7 +307,7 @@ export default function Home() {
 
   useEffect(() => {
     filterAndSortGames()
-  }, [games, searchTerm, activeFilters, sortBy, pinnedGames, customOrder])
+  }, [games, searchTerm, activeFilters, activeSourceFilters, sortBy, pinnedGames, customOrder])
 
   // Compute available filters from games (tags + categories)
   const availableFilters = useMemo(() => {
@@ -330,6 +332,30 @@ export default function Home() {
 
     return Array.from(filterSet)
   }, [games])
+
+  // Compute available sources from games
+  const availableSources = useMemo(() => {
+    const sourceSet = new Set<GameSource>()
+
+    games.forEach(game => {
+      if (game.primary_source) sourceSet.add(game.primary_source)
+      if (game.steam_appid) sourceSet.add('steam')
+      if (game.epic_id) sourceSet.add('epic')
+      if (game.gog_id) sourceSet.add('gog')
+      if (game.xbox_id) sourceSet.add('xbox')
+      if (game.igdb_id) sourceSet.add('igdb')
+    })
+
+    return Array.from(sourceSet)
+  }, [games])
+
+  function toggleSourceFilter(source: GameSource) {
+    setActiveSourceFilters(prev =>
+      prev.includes(source)
+        ? prev.filter(s => s !== source)
+        : [...prev, source]
+    )
+  }
 
   // Recently added games (last 7 days)
   const recentlyAddedGames = useMemo(() => {
@@ -431,6 +457,20 @@ export default function Home() {
       filtered = filtered.filter(game =>
         game.title.toLowerCase().includes(searchTerm.toLowerCase())
       )
+    }
+
+    // Source filters
+    if (activeSourceFilters.length > 0) {
+      filtered = filtered.filter(game => {
+        return activeSourceFilters.some(source => {
+          if (source === 'steam') return !!game.steam_appid
+          if (source === 'epic') return !!game.epic_id
+          if (source === 'gog') return !!game.gog_id
+          if (source === 'xbox') return !!game.xbox_id
+          if (source === 'igdb') return !!game.igdb_id || game.primary_source === 'igdb'
+          return game.primary_source === source
+        })
+      })
     }
 
     if (activeFilters.length > 0) {
@@ -785,6 +825,9 @@ export default function Home() {
           onSavePreset={saveFilterPreset}
           onLoadPreset={loadFilterPreset}
           onDeletePreset={deleteFilterPreset}
+          activeSourceFilters={activeSourceFilters}
+          onToggleSourceFilter={toggleSourceFilter}
+          availableSources={availableSources}
         />
 
         {/* Recently Added Row */}
@@ -1027,19 +1070,20 @@ export default function Home() {
         votedGames={votedGames}
       />
 
-      {/* Floating compare button */}
+      {/* Floating compare button - positioned above FAB on mobile */}
       <AnimatePresence>
         {compareGames.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 right-6 z-40 flex items-center gap-3"
+            className="fixed bottom-6 sm:bottom-6 right-6 z-40 flex items-center gap-3 max-sm:bottom-24"
           >
             <button
               onClick={() => setCompareGames([])}
-              className="glass glass-hover rounded-full p-3 text-white/60 hover:text-white transition-colors"
+              className="glass glass-hover rounded-full p-3 text-white/60 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Clear selection"
+              aria-label="Clear game selection"
             >
               <HiX className="w-5 h-5" />
             </button>
@@ -1048,17 +1092,27 @@ export default function Home() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowCompareModal(true)}
               disabled={compareGames.length < 2}
-              className="rounded-xl px-5 py-3 text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl px-5 py-3 text-sm font-medium text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               style={{
                 background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
                 boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)',
               }}
+              aria-label={`Compare ${compareGames.length} selected games`}
             >
               Compare ({compareGames.length}/3)
             </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Floating Action Button */}
+      <FloatingActionButton
+        onAddGame={() => setShowAddModal(true)}
+        onPickForUs={() => setShowPickerModal(true)}
+        onImport={() => setShowImportModal(true)}
+        onShare={handleShare}
+        gameCount={games.length}
+      />
     </main>
   )
 }

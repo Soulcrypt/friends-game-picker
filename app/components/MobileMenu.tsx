@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion'
 import {
   HiX,
   HiViewGrid,
@@ -16,8 +16,11 @@ import {
   HiCurrencyDollar,
   HiUsers,
 } from 'react-icons/hi'
-import { FaGamepad } from 'react-icons/fa'
-import type { ViewMode, CardSize, FilterPreset } from '@/lib/types'
+import { FaGamepad, FaSteam } from 'react-icons/fa'
+import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
+import { FaXbox } from 'react-icons/fa'
+import { TbWorldWww } from 'react-icons/tb'
+import type { ViewMode, CardSize, FilterPreset, GameSource } from '@/lib/types'
 
 interface MobileMenuProps {
   isOpen: boolean
@@ -42,6 +45,10 @@ interface MobileMenuProps {
   activeFilters: string[]
   onToggleFilter: (filter: string) => void
   availableFilters: string[]
+  // Source filters
+  activeSourceFilters?: GameSource[]
+  onToggleSourceFilter?: (source: GameSource) => void
+  availableSources?: GameSource[]
   // Presets
   filterPresets: FilterPreset[]
   onSavePreset: (name: string) => void
@@ -60,6 +67,15 @@ const FILTER_ICONS: Record<string, JSX.Element> = {
   'Free': <HiCurrencyDollar className="w-3.5 h-3.5" />,
   'Paid': <HiCurrencyDollar className="w-3.5 h-3.5" />,
 }
+
+// Source filter definitions
+const SOURCE_FILTERS: { source: GameSource; icon: JSX.Element; label: string; bg: string; activeBg: string }[] = [
+  { source: 'steam', icon: <FaSteam className="w-4 h-4" />, label: 'Steam', bg: 'bg-[#1B2838]/50', activeBg: 'bg-[#1B2838]' },
+  { source: 'epic', icon: <SiEpicgames className="w-4 h-4" />, label: 'Epic', bg: 'bg-[#2A2A2A]/50', activeBg: 'bg-[#2A2A2A]' },
+  { source: 'xbox', icon: <FaXbox className="w-4 h-4" />, label: 'Xbox', bg: 'bg-[#107C10]/50', activeBg: 'bg-[#107C10]' },
+  { source: 'gog', icon: <SiGogdotcom className="w-4 h-4" />, label: 'GOG', bg: 'bg-[#86328A]/50', activeBg: 'bg-[#86328A]' },
+  { source: 'igdb', icon: <TbWorldWww className="w-4 h-4" />, label: 'Other', bg: 'bg-purple-900/30', activeBg: 'bg-purple-900/60' },
+]
 
 export default function MobileMenu({
   isOpen,
@@ -81,7 +97,13 @@ export default function MobileMenu({
   activeFilters,
   onToggleFilter,
   availableFilters,
+  activeSourceFilters = [],
+  onToggleSourceFilter,
+  availableSources = [],
 }: MobileMenuProps) {
+  const dragY = useMotionValue(0)
+  const backgroundOpacity = useTransform(dragY, [0, 300], [1, 0])
+
   // Prevent body scroll when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -93,6 +115,27 @@ export default function MobileMenu({
       document.body.style.overflow = ''
     }
   }, [isOpen])
+
+  // Handle swipe to dismiss
+  const handleDragEnd = useCallback((_: unknown, info: PanInfo) => {
+    if (info.offset.y > 100 || info.velocity.y > 500) {
+      onClose()
+    }
+  }, [onClose])
+
+  // Get active filter summary text
+  const getFilterSummary = () => {
+    const parts: string[] = []
+    if (activeFilters.length > 0) {
+      parts.push(`${activeFilters.length} filter${activeFilters.length > 1 ? 's' : ''}`)
+    }
+    if (activeSourceFilters.length > 0) {
+      parts.push(`${activeSourceFilters.length} store${activeSourceFilters.length > 1 ? 's' : ''}`)
+    }
+    return parts.length > 0 ? parts.join(', ') + ' active' : null
+  }
+
+  const filterSummary = getFilterSummary()
 
   // Organize filters
   const playerModeFilters = PLAYER_MODE_FILTERS.filter(f => availableFilters.includes(f))
@@ -132,6 +175,7 @@ export default function MobileMenu({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            style={{ opacity: backgroundOpacity }}
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           />
@@ -142,24 +186,50 @@ export default function MobileMenu({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-hidden"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={handleDragEnd}
+            style={{ y: dragY }}
+            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-hidden touch-none"
           >
             <div className="glass-strong rounded-t-3xl">
               {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+                <div className="w-10 h-1 rounded-full bg-white/30" />
               </div>
 
               {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-white/60 hover:text-white"
+                className="absolute top-4 right-4 p-2 text-white/60 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close menu"
               >
                 <HiX className="w-5 h-5" />
               </button>
 
+              {/* Active filter summary */}
+              {filterSummary && (
+                <div className="px-5 pb-2">
+                  <div className="flex items-center justify-between glass rounded-lg px-3 py-2">
+                    <span className="text-xs text-purple-300 font-medium">{filterSummary}</span>
+                    <button
+                      onClick={() => {
+                        activeFilters.forEach(f => onToggleFilter(f))
+                        if (onToggleSourceFilter) {
+                          activeSourceFilters.forEach(s => onToggleSourceFilter(s))
+                        }
+                      }}
+                      className="text-xs text-white/50 hover:text-white"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Content */}
-              <div className="px-5 pb-8 pt-2 overflow-y-auto max-h-[calc(85vh-40px)] space-y-6">
+              <div className="px-5 pb-8 pt-2 overflow-y-auto max-h-[calc(85vh-40px)] space-y-6 overscroll-contain">
                 {/* View Controls */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider">
@@ -309,15 +379,46 @@ export default function MobileMenu({
                     <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider">
                       Filters
                     </h3>
-                    {activeFilters.length > 0 && (
+                    {(activeFilters.length > 0 || activeSourceFilters.length > 0) && (
                       <button
-                        onClick={() => activeFilters.forEach(f => onToggleFilter(f))}
+                        onClick={() => {
+                          activeFilters.forEach(f => onToggleFilter(f))
+                          if (onToggleSourceFilter) {
+                            activeSourceFilters.forEach(s => onToggleSourceFilter(s))
+                          }
+                        }}
                         className="text-xs text-purple-400 hover:text-purple-300"
                       >
-                        Clear all ({activeFilters.length})
+                        Clear all ({activeFilters.length + activeSourceFilters.length})
                       </button>
                     )}
                   </div>
+
+                  {/* Source Filters */}
+                  {onToggleSourceFilter && availableSources.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-white/30">
+                        <TbWorldWww className="w-3.5 h-3.5" />
+                        <span className="text-xs uppercase tracking-wider">Store</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label, bg, activeBg }) => (
+                          <button
+                            key={source}
+                            onClick={() => onToggleSourceFilter(source)}
+                            className={`rounded-full font-medium transition-all whitespace-nowrap flex items-center gap-2 px-3 py-2 text-sm min-h-[44px] ${
+                              activeSourceFilters.includes(source)
+                                ? `${activeBg} text-white shadow-lg`
+                                : `${bg} text-white/50`
+                            }`}
+                          >
+                            {icon}
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Price & Player Mode */}
                   {(priceFilters.length > 0 || playerModeFilters.length > 0) && (

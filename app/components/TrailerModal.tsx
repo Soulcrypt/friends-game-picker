@@ -4,6 +4,24 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiX, HiExternalLink } from 'react-icons/hi'
 
+// Helper to detect and extract YouTube video ID
+function getYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([^&]+)/,
+    /(?:youtu\.be\/)([^?]+)/,
+    /(?:youtube\.com\/embed\/)([^?]+)/,
+  ]
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match) return match[1]
+  }
+  return null
+}
+
+function isYouTubeUrl(url: string): boolean {
+  return url.includes('youtube.com') || url.includes('youtu.be')
+}
+
 interface TrailerModalProps {
   isOpen: boolean
   onClose: () => void
@@ -35,6 +53,18 @@ export default function TrailerModal({ isOpen, onClose, trailerUrl, gameTitle }:
     }
   }, [isOpen])
 
+  // Focus trap: return focus to trigger element on close
+  const previousActiveElement = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      previousActiveElement.current = document.activeElement as HTMLElement
+    } else if (previousActiveElement.current) {
+      previousActiveElement.current.focus()
+      previousActiveElement.current = null
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -44,6 +74,9 @@ export default function TrailerModal({ isOpen, onClose, trailerUrl, gameTitle }:
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trailer-modal-title"
         >
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
@@ -59,14 +92,15 @@ export default function TrailerModal({ isOpen, onClose, trailerUrl, gameTitle }:
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-white/80 truncate pr-4">
+              <h2 id="trailer-modal-title" className="text-base font-semibold text-white/80 truncate pr-4">
                 {gameTitle}
               </h2>
               <button
                 onClick={onClose}
                 className="w-8 h-8 rounded-full glass-strong flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
+                aria-label="Close trailer"
               >
-                <HiX className="w-4 h-4" />
+                <HiX className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -85,6 +119,15 @@ export default function TrailerModal({ isOpen, onClose, trailerUrl, gameTitle }:
                     Open in browser
                   </a>
                 </div>
+              ) : isYouTubeUrl(trailerUrl) ? (
+                // YouTube embed
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${getYouTubeVideoId(trailerUrl)}?autoplay=1&rel=0`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full aspect-video bg-black"
+                  title={`${gameTitle} trailer`}
+                />
               ) : (
                 <video
                   ref={videoRef}

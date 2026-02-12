@@ -4,14 +4,58 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiThumbUp, HiTrash, HiPlay, HiArrowLeft, HiExternalLink, HiUsers, HiRefresh, HiInformationCircle, HiStar } from 'react-icons/hi'
 import { FaWindows, FaApple, FaLinux, FaSteam } from 'react-icons/fa'
+import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
+import { FaXbox } from 'react-icons/fa'
+import { TbWorldWww } from 'react-icons/tb'
 import confetti from 'canvas-confetti'
-import type { Game, ReactionType, ReactionCounts } from '@/lib/types'
+import type { Game, ReactionType, ReactionCounts, GameSource } from '@/lib/types'
 import { getSessionId, getReactions, getUserReactions, toggleReaction } from '@/lib/votes'
 import { fetchGameDetails } from '@/lib/steam'
 import ReactionButtons from './ReactionButtons'
 import ScreenshotSlideshow from './ScreenshotSlideshow'
 
 import type { CardSize } from '@/lib/types'
+
+// Helper to detect YouTube URLs
+function isYouTubeUrl(url: string): boolean {
+  return url.includes('youtube.com') || url.includes('youtu.be')
+}
+
+// Source icon component
+function SourceIcon({ source, className = 'w-4 h-4' }: { source: GameSource; className?: string }) {
+  switch (source) {
+    case 'steam':
+      return <FaSteam className={className} />
+    case 'epic':
+      return <SiEpicgames className={className} />
+    case 'gog':
+      return <SiGogdotcom className={className} />
+    case 'xbox':
+      return <FaXbox className={className} />
+    case 'igdb':
+      return <TbWorldWww className={className} />
+    default:
+      return <TbWorldWww className={className} />
+  }
+}
+
+// Source badge colors
+function getSourceStyles(source: GameSource): { bg: string; text: string; name: string } {
+  switch (source) {
+    case 'steam':
+      return { bg: 'bg-[#1B2838]', text: 'text-[#66C0F4]', name: 'Steam' }
+    case 'epic':
+      return { bg: 'bg-[#2A2A2A]', text: 'text-white', name: 'Epic' }
+    case 'gog':
+      return { bg: 'bg-[#86328A]', text: 'text-white', name: 'GOG' }
+    case 'xbox':
+      return { bg: 'bg-[#107C10]', text: 'text-white', name: 'Xbox' }
+    case 'igdb':
+      return { bg: 'bg-purple-900/50', text: 'text-purple-300', name: 'IGDB' }
+    default:
+      return { bg: 'bg-white/10', text: 'text-white/70', name: 'Other' }
+  }
+}
 
 interface GameCardProps {
   game: Game
@@ -46,6 +90,16 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
   const cardRef = useRef<HTMLDivElement>(null)
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const quickActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.matchMedia('(max-width: 640px)').matches)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     loadReactions()
@@ -109,6 +163,49 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
     }
   }, [])
 
+  // Mobile touch handlers for screenshot navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isFlipped) return
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() }
+  }, [isFlipped])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isFlipped || !touchStartRef.current || !detailedGame.screenshots?.length) return
+
+    const touch = e.changedTouches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+    const deltaTime = Date.now() - touchStartRef.current.time
+
+    // Swipe detection: horizontal swipe, short duration, more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) && deltaTime < 300) {
+      const maxScreenshot = Math.min(detailedGame.screenshots.length - 1, 5)
+      if (deltaX < 0) {
+        // Swipe left - next screenshot
+        setCurrentScreenshot(prev => Math.min(prev + 1, maxScreenshot))
+      } else {
+        // Swipe right - previous screenshot
+        setCurrentScreenshot(prev => Math.max(prev - 1, 0))
+      }
+    }
+
+    touchStartRef.current = null
+  }, [isFlipped, detailedGame.screenshots])
+
+  // Mobile tap handler to show quick actions
+  const handleMobileTap = useCallback((e: React.MouseEvent) => {
+    if (!isMobile || isFlipped) return
+    // Toggle quick actions on mobile tap
+    if (!showQuickActions) {
+      e.preventDefault()
+      e.stopPropagation()
+      setShowQuickActions(true)
+      // Auto-hide after 3 seconds
+      setTimeout(() => setShowQuickActions(false), 3000)
+    }
+  }, [isMobile, isFlipped, showQuickActions])
+
   // Vote with confetti animation
   const handleVoteWithAnimation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -143,22 +240,41 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
     if (!isFlipped) {
       setIsFlipped(true)
       // Fetch full details if we don't have them
-      if (!detailedGame.description && steamAppId) {
+      if (!detailedGame.description) {
         setLoadingDetails(true)
         try {
-          const details = await fetchGameDetails(steamAppId)
-          if (details) {
-            setDetailedGame(prev => ({
-              ...prev,
-              description: details.description,
-              short_description: details.short_description,
-              screenshots: details.screenshots,
-              platforms: details.platforms,
-              developers: details.developers,
-              publishers: details.publishers,
-              release_date: details.release_date,
-              trailer_url: details.trailer_url || prev.trailer_url,
-            }))
+          if (steamAppId) {
+            // Fetch from Steam
+            const details = await fetchGameDetails(steamAppId)
+            if (details) {
+              setDetailedGame(prev => ({
+                ...prev,
+                description: details.description,
+                short_description: details.short_description,
+                screenshots: details.screenshots,
+                platforms: details.platforms,
+                developers: details.developers,
+                publishers: details.publishers,
+                release_date: details.release_date,
+                trailer_url: details.trailer_url || prev.trailer_url,
+              }))
+            }
+          } else if (game.igdb_id) {
+            // Fetch from IGDB for non-Steam games
+            const response = await fetch(`/api/igdb/details?id=${game.igdb_id}`)
+            if (response.ok) {
+              const details = await response.json()
+              setDetailedGame(prev => ({
+                ...prev,
+                description: details.description || details.summary,
+                short_description: details.summary,
+                screenshots: details.screenshots || prev.screenshots,
+                trailer_url: details.trailerUrl || prev.trailer_url,
+                release_date: details.releaseDate,
+                developers: details.developers,
+                publishers: details.publishers,
+              }))
+            }
           }
         } catch (err) {
           console.error('Failed to fetch game details:', err)
@@ -201,8 +317,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
   const rankBadge = getRankBadge()
   const hasTrailer = !!game.trailer_url
   const hasScreenshots = game.screenshots && game.screenshots.length > 0
-  const showVideo = hasTrailer && isHovered && !videoError && !isFlipped
-  const showScreenshots = !hasTrailer && hasScreenshots && isHovered && !isFlipped
+  // Don't try to autoplay YouTube URLs in video tag - they won't work
+  const hasDirectVideoTrailer = hasTrailer && !isYouTubeUrl(game.trailer_url!)
+  const showVideo = hasDirectVideoTrailer && isHovered && !videoError && !isFlipped
+  // Show screenshots slideshow for YouTube trailers or if no trailer but has screenshots
+  const showScreenshots = ((!hasDirectVideoTrailer && hasScreenshots) || (!hasTrailer && hasScreenshots)) && isHovered && !isFlipped
 
   // Strip HTML tags from description
   const cleanDescription = (html: string) => {
@@ -225,6 +344,7 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       whileHover={isFlipped ? undefined : { y: -6 }}
+      whileTap={isMobile && !isFlipped ? { scale: 0.98 } : undefined}
       transition={{
         type: 'spring',
         stiffness: 300,
@@ -233,6 +353,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onClick={isMobile && !isFlipped && !showQuickActions ? handleMobileTap : undefined}
       className="relative group perspective-1000"
       style={{ perspective: '1000px' }}
     >
@@ -271,8 +394,10 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                     : 'bg-black/40 hover:bg-amber-500/80 text-white/60 hover:text-white'
                 }`}
                 title={isPinned ? 'Unpin game' : 'Pin to top'}
+                aria-label={isPinned ? `Unpin ${game.title}` : `Pin ${game.title} to top`}
+                aria-pressed={isPinned}
               >
-                <HiStar className={`w-4 h-4 ${isPinned ? 'fill-current' : ''}`} />
+                <HiStar className={`w-4 h-4 ${isPinned ? 'fill-current' : ''}`} aria-hidden="true" />
               </motion.button>
             )}
 
@@ -286,8 +411,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               }}
               className="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center text-white shadow-lg transition-all"
               title="Delete game (can undo)"
+              aria-label={`Remove ${game.title} from list`}
             >
-              <HiTrash className="w-4 h-4" />
+              <HiTrash className="w-4 h-4" aria-hidden="true" />
             </motion.button>
           </div>
 
@@ -378,8 +504,10 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                         : 'glass-strong text-white/80 hover:text-white'
                     }`}
                     title={hasVoted ? 'Remove vote' : 'Vote for this game'}
+                    aria-label={hasVoted ? `Remove vote from ${game.title}` : `Vote for ${game.title}`}
+                    aria-pressed={hasVoted}
                   >
-                    <HiThumbUp className="w-5 h-5" />
+                    <HiThumbUp className="w-5 h-5" aria-hidden="true" />
                   </motion.button>
 
                   {/* Play trailer button */}
@@ -394,8 +522,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                       onClick={(e) => { e.stopPropagation(); onPlayTrailer() }}
                       className="w-12 h-12 rounded-full glass-strong flex items-center justify-center text-white/80 hover:text-white shadow-lg"
                       title="Watch trailer"
+                      aria-label={`Watch ${game.title} trailer`}
                     >
-                      <HiPlay className="w-5 h-5 ml-0.5" />
+                      <HiPlay className="w-5 h-5 ml-0.5" aria-hidden="true" />
                     </motion.button>
                   )}
 
@@ -410,8 +539,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                     onClick={handleCardClick}
                     className="w-12 h-12 rounded-full glass-strong flex items-center justify-center text-white/80 hover:text-white shadow-lg"
                     title="View details"
+                    aria-label={`View details for ${game.title}`}
                   >
-                    <HiInformationCircle className="w-5 h-5" />
+                    <HiInformationCircle className="w-5 h-5" aria-hidden="true" />
                   </motion.button>
 
                   {/* Steam link */}
@@ -429,8 +559,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                       onClick={(e) => e.stopPropagation()}
                       className="w-12 h-12 rounded-full glass-strong flex items-center justify-center text-white/80 hover:text-white shadow-lg"
                       title="View on Steam"
+                      aria-label={`View ${game.title} on Steam store`}
                     >
-                      <FaSteam className="w-5 h-5" />
+                      <FaSteam className="w-5 h-5" aria-hidden="true" />
                     </motion.a>
                   )}
                 </motion.div>
@@ -463,6 +594,64 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                     {game.platforms.linux && <FaLinux className="w-3 h-3 text-orange-300" title="Linux" />}
                   </div>
                 )}
+                {/* Store availability badges */}
+                <div className="flex items-center gap-0.5">
+                  {game.steam_appid && (
+                    <a
+                      href={`https://store.steampowered.com/app/${game.steam_appid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="backdrop-blur-sm bg-[#1B2838]/80 hover:bg-[#1B2838] px-1 py-0.5 rounded transition-colors"
+                      title="View on Steam"
+                    >
+                      <FaSteam className="w-3 h-3 text-[#66C0F4]" />
+                    </a>
+                  )}
+                  {game.epic_id && (
+                    <a
+                      href={`https://store.epicgames.com/p/${game.epic_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="backdrop-blur-sm bg-[#2A2A2A]/80 hover:bg-[#2A2A2A] px-1 py-0.5 rounded transition-colors"
+                      title="View on Epic Games"
+                    >
+                      <SiEpicgames className="w-3 h-3 text-white" />
+                    </a>
+                  )}
+                  {game.gog_id && (
+                    <a
+                      href={`https://www.gog.com/game/${game.gog_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="backdrop-blur-sm bg-[#86328A]/80 hover:bg-[#86328A] px-1 py-0.5 rounded transition-colors"
+                      title="View on GOG"
+                    >
+                      <SiGogdotcom className="w-3 h-3 text-white" />
+                    </a>
+                  )}
+                  {game.xbox_id && (
+                    <a
+                      href={`https://www.xbox.com/games/store/${game.xbox_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="backdrop-blur-sm bg-[#107C10]/80 hover:bg-[#107C10] px-1 py-0.5 rounded transition-colors"
+                      title="View on Xbox"
+                    >
+                      <FaXbox className="w-3 h-3 text-white" />
+                    </a>
+                  )}
+                </div>
+                {/* Game Pass badge */}
+                {game.platform_availability?.xbox?.gamePass && (
+                  <div className="backdrop-blur-sm bg-[#107C10]/80 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                    <FaXbox className="w-2.5 h-2.5 text-white" />
+                    <span className="text-[9px] font-bold text-white">Game Pass</span>
+                  </div>
+                )}
                 {/* Early Access badge */}
                 {game.categories?.some(c => c.toLowerCase().includes('early access')) && (
                   <div className="backdrop-blur-sm bg-amber-500/60 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white">
@@ -480,9 +669,20 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                   </div>
                 )}
               </div>
-              <h3 className="font-semibold text-[13px] text-white line-clamp-2 leading-snug drop-shadow-lg">
-                {game.title}
-              </h3>
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-[13px] text-white line-clamp-2 leading-snug drop-shadow-lg flex-1">
+                  {game.title}
+                </h3>
+                {/* Primary source badge */}
+                {game.primary_source && game.primary_source !== 'steam' && (
+                  <div className={`flex-shrink-0 backdrop-blur-sm ${getSourceStyles(game.primary_source).bg} px-1.5 py-0.5 rounded flex items-center gap-1`}>
+                    <SourceIcon source={game.primary_source} className="w-2.5 h-2.5" />
+                    <span className={`text-[9px] font-medium ${getSourceStyles(game.primary_source).text}`}>
+                      {getSourceStyles(game.primary_source).name}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -567,8 +767,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
           <button
             onClick={handleFlipBack}
             className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full glass-strong flex items-center justify-center text-white/60 hover:text-white transition-colors"
+            aria-label="Go back to card front"
           >
-            <HiArrowLeft className="w-4 h-4" />
+            <HiArrowLeft className="w-4 h-4" aria-hidden="true" />
           </button>
 
           {/* Top right buttons */}
@@ -587,9 +788,10 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               }}
               disabled={isRefreshing}
               className="w-8 h-8 rounded-full glass-strong flex items-center justify-center text-white/60 hover:text-white transition-colors disabled:opacity-50"
-              title="Refresh game data from Steam"
+              title="Refresh game data"
+              aria-label={`Refresh ${game.title} data`}
             >
-              <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
             </button>
 
             {/* Steam link */}
@@ -601,8 +803,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                 onClick={(e) => e.stopPropagation()}
                 className="w-8 h-8 rounded-full glass-strong flex items-center justify-center text-white/60 hover:text-white transition-colors"
                 title="View on Steam"
+                aria-label={`Open ${game.title} on Steam store`}
               >
-                <HiExternalLink className="w-4 h-4" />
+                <HiExternalLink className="w-4 h-4" aria-hidden="true" />
               </a>
             )}
           </div>

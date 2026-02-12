@@ -1,5 +1,6 @@
 'use client'
 
+import { forwardRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import GameCard from './GameCard'
@@ -22,11 +23,11 @@ interface SortableGameCardProps {
   isDraggable?: boolean
 }
 
-export default function SortableGameCard({
+const SortableGameCard = forwardRef<HTMLDivElement, SortableGameCardProps>(function SortableGameCard({
   game,
   isDraggable = true,
   ...props
-}: SortableGameCardProps) {
+}, ref) {
   const {
     attributes,
     listeners,
@@ -46,9 +47,19 @@ export default function SortableGameCard({
     zIndex: isDragging ? 1000 : 'auto',
   }
 
+  // Merge refs
+  const mergedRef = (node: HTMLDivElement | null) => {
+    setNodeRef(node)
+    if (typeof ref === 'function') {
+      ref(node)
+    } else if (ref) {
+      ref.current = node
+    }
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={mergedRef}
       style={style}
       {...attributes}
       {...listeners}
@@ -57,4 +68,6 @@ export default function SortableGameCard({
       <GameCard game={game} {...props} />
     </div>
   )
-}
+})
+
+export default SortableGameCard

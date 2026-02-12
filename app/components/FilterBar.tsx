@@ -22,8 +22,11 @@ import {
   HiX,
   HiMenu,
 } from 'react-icons/hi'
-import { FaGamepad } from 'react-icons/fa'
-import type { ViewMode, CardSize, FilterPreset } from '@/lib/types'
+import { FaGamepad, FaSteam } from 'react-icons/fa'
+import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
+import { FaXbox } from 'react-icons/fa'
+import { TbWorldWww } from 'react-icons/tb'
+import type { ViewMode, CardSize, FilterPreset, GameSource } from '@/lib/types'
 import MobileMenu from './MobileMenu'
 
 interface FilterBarProps {
@@ -51,11 +54,24 @@ interface FilterBarProps {
   onSavePreset: (name: string) => void
   onLoadPreset: (preset: FilterPreset) => void
   onDeletePreset: (presetId: string) => void
+  // Source filters
+  activeSourceFilters?: GameSource[]
+  onToggleSourceFilter?: (source: GameSource) => void
+  availableSources?: GameSource[]
 }
 
 // Category definitions for organizing filters
 const PLAYER_MODE_FILTERS = ['Single-player', 'Multiplayer', 'Co-op', 'PvP']
 const PRICE_FILTERS = ['Free', 'Paid']
+
+// Source filter definitions with icons and colors
+const SOURCE_FILTERS: { source: GameSource; icon: JSX.Element; label: string; bg: string; activeBg: string }[] = [
+  { source: 'steam', icon: <FaSteam className="w-3 h-3" />, label: 'Steam', bg: 'bg-[#1B2838]/50', activeBg: 'bg-[#1B2838]' },
+  { source: 'epic', icon: <SiEpicgames className="w-3 h-3" />, label: 'Epic', bg: 'bg-[#2A2A2A]/50', activeBg: 'bg-[#2A2A2A]' },
+  { source: 'xbox', icon: <FaXbox className="w-3 h-3" />, label: 'Xbox', bg: 'bg-[#107C10]/50', activeBg: 'bg-[#107C10]' },
+  { source: 'gog', icon: <SiGogdotcom className="w-3 h-3" />, label: 'GOG', bg: 'bg-[#86328A]/50', activeBg: 'bg-[#86328A]' },
+  { source: 'igdb', icon: <TbWorldWww className="w-3 h-3" />, label: 'Other', bg: 'bg-purple-900/30', activeBg: 'bg-purple-900/60' },
+]
 
 // Icons for specific filters
 const FILTER_ICONS: Record<string, JSX.Element> = {
@@ -92,6 +108,9 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
   onSavePreset,
   onLoadPreset,
   onDeletePreset,
+  activeSourceFilters = [],
+  onToggleSourceFilter,
+  availableSources = [],
 }, ref) {
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -162,6 +181,9 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
         onSavePreset={onSavePreset}
         onLoadPreset={onLoadPreset}
         onDeletePreset={onDeletePreset}
+        activeSourceFilters={activeSourceFilters}
+        onToggleSourceFilter={onToggleSourceFilter}
+        availableSources={availableSources}
       />
 
       <div className="sticky top-0 z-20 pb-4">
@@ -188,8 +210,9 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                   disabled={gameCount === 0 || isRefreshing}
                   className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
                   title="Refresh all games"
+                  aria-label="Refresh all games"
                 >
-                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -197,8 +220,9 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                   onClick={onImport}
                   className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors"
                   title="Import games"
+                  aria-label="Import games from file"
                 >
-                  <HiUpload className="w-4 h-4" />
+                  <HiUpload className="w-4 h-4" aria-hidden="true" />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -207,8 +231,9 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                   disabled={gameCount === 0}
                   className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
                   title="Share collection"
+                  aria-label="Share game collection"
                 >
-                  <HiShare className="w-4 h-4" />
+                  <HiShare className="w-4 h-4" aria-hidden="true" />
                 </motion.button>
               </div>
 
@@ -246,8 +271,10 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                 onClick={() => setMobileMenuOpen(true)}
                 className="sm:hidden glass glass-hover rounded-xl p-2.5 text-white/70 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Menu"
+                aria-label="Open menu"
+                aria-expanded={mobileMenuOpen}
               >
-                <HiMenu className="w-5 h-5" />
+                <HiMenu className="w-5 h-5" aria-hidden="true" />
               </motion.button>
             </div>
           </div>
@@ -258,15 +285,21 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           <input
             ref={ref}
             type="text"
+            inputMode="search"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             placeholder="Search games... (press / to focus)"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full glass-input rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30"
+            className="w-full glass-input rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-white/30 min-h-[44px]"
+            aria-label="Search games"
           />
           {searchTerm && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Clear search"
             >
               <HiX className="w-4 h-4" />
             </button>
@@ -290,6 +323,32 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             {playerModeFilters.map(filter => (
               <FilterButton key={filter} filter={filter} />
             ))}
+
+            {/* Source filters */}
+            {onToggleSourceFilter && availableSources.length > 0 && (
+              <>
+                {(priceFilters.length > 0 || playerModeFilters.length > 0) && (
+                  <div className="w-px h-5 bg-white/10 mx-1" />
+                )}
+                <span className="text-[10px] text-white/30 uppercase tracking-wider">Store:</span>
+                {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label, bg, activeBg }) => (
+                  <motion.button
+                    key={source}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onToggleSourceFilter(source)}
+                    className={`rounded-full font-medium transition-all whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 text-[11px] ${
+                      activeSourceFilters.includes(source)
+                        ? `${activeBg} text-white shadow-lg`
+                        : `${bg} text-white/50 hover:text-white/80`
+                    }`}
+                  >
+                    {icon}
+                    {label}
+                  </motion.button>
+                ))}
+              </>
+            )}
           </div>
 
           {/* Genre filters */}
