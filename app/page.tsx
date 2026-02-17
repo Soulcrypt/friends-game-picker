@@ -28,9 +28,12 @@ import TrailerModal from './components/TrailerModal'
 import RecentlyAddedRow from './components/RecentlyAddedRow'
 import PickerModal from './components/PickerModal'
 import FloatingActionButton from './components/FloatingActionButton'
-import { getGames, voteForGame, getSessionId, getUserVotes, removeGame, restoreGame, updateGameCover } from '@/lib/votes'
+import PollBanner from './components/PollBanner'
+import LoginButton from './components/LoginButton'
+import { getGames, voteForGame, getSessionId, getUserVotes, removeGame, restoreGame, updateGameCover, getActivePoll, getUserRankedVotes, submitRankedVotes, calculateResults } from '@/lib/votes'
 import { fetchSteamCoverByTitle } from '@/lib/steam'
-import type { Game, ViewMode, CardSize, FilterPreset, GameSource } from '@/lib/types'
+import { useAuth } from '@/lib/auth-context'
+import type { Game, ViewMode, CardSize, FilterPreset, GameSource, Poll, RankedVote, GameResult } from '@/lib/types'
 import toast from 'react-hot-toast'
 import { HiPlus, HiOutlineCollection, HiAdjustments, HiChevronDown, HiChevronRight, HiX } from 'react-icons/hi'
 
@@ -58,6 +61,12 @@ export default function Home() {
   const [isDragMode, setIsDragMode] = useState(false)
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>([])
   const [activeSourceFilters, setActiveSourceFilters] = useState<GameSource[]>([])
+
+  // Poll state
+  const [activePoll, setActivePoll] = useState<Poll | null>(null)
+  const [userPollRankings, setUserPollRankings] = useState<{ [rank: number]: string }>({}) // rank -> gameId
+  const [pollResults, setPollResults] = useState<GameResult[]>([])
+  const { profile } = useAuth()
 
   // Load filter presets from localStorage
   useEffect(() => {
@@ -244,6 +253,122 @@ export default function Home() {
     loadGames()
     loadUserVotes()
   }, [])
+
+  // Load active poll and user's rankings
+  useEffect(() => {
+    loadActivePoll()
+  }, [])
+
+  useEffect(() => {
+    if (activePoll && profile) {
+      loadUserPollRankings()
+    }
+  }, [activePoll?.id, profile?.id])
+
+  // Load poll results periodically
+  useEffect(() => {
+    if (!activePoll) return
+
+    const loadResults = async () => {
+      const results = await calculateResults(activePoll.id)
+      setPollResults(results)
+    }
+
+    loadResults()
+    const interval = setInterval(loadResults, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [activePoll?.id])
+
+  async function loadActivePoll() {
+    try {
+      const poll = await getActivePoll()
+      setActivePoll(poll)
+    } catch (error) {
+      console.error('Error loading active poll:', error)
+    }
+  }
+
+  async function loadUserPollRankings() {
+    if (!activePoll || !profile) return
+
+    try {
+      const votes = await getUserRankedVotes(activePoll.id, profile.id)
+      const rankings: { [rank: number]: string } = {}
+      votes.forEach(v => {
+        rankings[v.rank] = v.game_id
+      })
+      setUserPollRankings(rankings)
+    } catch (error) {
+      console.error('Error loading user poll rankings:', error)
+    }
+  }
+
+  async function handlePollRankSelect(gameId: string, rank: number | null) {
+    if (!activePoll || !profile) {
+      toast.error('Please login to vote')
+      return
+    }
+
+    // Build new rankings
+    const newRankings: { gameId: string; rank: number }[] = []
+
+    if (rank === null) {
+      // Remove this game from rankings
+      Object.entries(userPollRankings).forEach(([r, gId]) => {
+        if (gId !== gameId) {
+          newRankings.push({ gameId: gId, rank: parseInt(r) })
+        }
+      })
+    } else {
+      // Add/update this game's rank
+      Object.entries(userPollRankings).forEach(([r, gId]) => {
+        const existingRank = parseInt(r)
+        if (gId !== gameId && existingRank !== rank) {
+          newRankings.push({ gameId: gId, rank: existingRank })
+        }
+      })
+      newRankings.push({ gameId, rank })
+    }
+
+    // Optimistically update UI
+    const newUserRankings: { [rank: number]: string } = {}
+    newRankings.forEach(r => {
+      newUserRankings[r.rank] = r.gameId
+    })
+    setUserPollRankings(newUserRankings)
+
+    // Submit to server
+    const success = await submitRankedVotes(activePoll.id, profile.id, newRankings)
+    if (success) {
+      toast.success(rank ? `Added as ${rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'} choice!` : 'Removed from poll')
+      // Refresh results
+      const results = await calculateResults(activePoll.id)
+      setPollResults(results)
+    } else {
+      toast.error('Failed to update vote')
+      // Revert on failure
+      loadUserPollRankings()
+    }
+  }
+
+  function handlePollStateChange() {
+    loadActivePoll()
+    loadUserPollRankings()
+  }
+
+  // Get poll rank for a specific game
+  function getGamePollRank(gameId: string): number | null {
+    for (const [rank, gId] of Object.entries(userPollRankings)) {
+      if (gId === gameId) return parseInt(rank)
+    }
+    return null
+  }
+
+  // Get poll points for a specific game
+  function getGamePollPoints(gameId: string): number {
+    const result = pollResults.find(r => r.game_id === gameId)
+    return result?.total_points || 0
+  }
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -799,6 +924,17 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 sm:p-8 max-w-7xl mx-auto">
       <div className="pt-4">
+        {/* Header with Login */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
+            What are we playing?
+          </h1>
+          <LoginButton />
+        </div>
+
+        {/* Poll Banner */}
+        <PollBanner games={games} onPollStateChange={handlePollStateChange} />
+
         <FilterBar
           ref={searchInputRef}
           searchTerm={searchTerm}
@@ -942,11 +1078,16 @@ export default function Home() {
                           onPlayTrailer={() => setTrailerGame(game)}
                           onRefresh={handleRefresh}
                           onPin={() => togglePin(game.id)}
+                          onPollRankSelect={handlePollRankSelect}
                           rank={index + 1}
                           index={index}
                           hasVoted={votedGames.includes(game.id)}
                           isPinned={pinnedGames.includes(game.id)}
                           size={cardSize}
+                          isPollActive={!!activePoll}
+                          pollRank={getGamePollRank(game.id)}
+                          pollVoteCount={getGamePollPoints(game.id)}
+                          userPollRanks={userPollRankings}
                         />
                       ))}
                     </AnimatePresence>
@@ -983,6 +1124,7 @@ export default function Home() {
                       onRefresh={handleRefresh}
                       onPin={() => togglePin(game.id)}
                       onCompare={() => toggleCompare(game.id)}
+                      onPollRankSelect={handlePollRankSelect}
                       rank={index + 1}
                       index={index}
                       hasVoted={votedGames.includes(game.id)}
@@ -990,6 +1132,10 @@ export default function Home() {
                       isComparing={compareGames.includes(game.id)}
                       size={cardSize}
                       isDraggable={sortBy === 'votes' && groupBy === 'none'}
+                      isPollActive={!!activePoll}
+                      pollRank={getGamePollRank(game.id)}
+                      pollVoteCount={getGamePollPoints(game.id)}
+                      userPollRanks={userPollRankings}
                     />
                   ))}
                 </AnimatePresence>

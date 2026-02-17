@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
+import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
 
 // System font stack CSS class (no network required)
@@ -35,9 +36,11 @@ export default function RootLayout({
         </div>
 
         {/* Content */}
-        <div className="relative z-10">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="relative z-10">
+            {children}
+          </div>
+        </AuthProvider>
 
         <Toaster
           position="bottom-right"

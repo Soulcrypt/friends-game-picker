@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
-import { supabase } from './supabase'
-import type { Game, ReactionType, ReactionCounts } from './types'
+import { supabase, createSupabaseBrowserClient } from './supabase'
+import type { Game, ReactionType, ReactionCounts, Poll, RankedVote, Profile, GameResult, VoterInfo } from './types'
 
 const SESSION_KEY = 'game_picker_session_id'
 
@@ -22,7 +22,7 @@ export async function getGames(): Promise<Game[]> {
     .order('votes', { ascending: false })
 
   if (error) {
-    console.error('Error fetching games:', error)
+    console.error('Error fetching games:', error.message, error.code, error.details, error.hint)
     return []
   }
 
@@ -36,7 +36,7 @@ export async function getUserVotes(sessionId: string): Promise<string[]> {
     .eq('session_id', sessionId)
 
   if (error) {
-    console.error('Error fetching user votes:', error)
+    console.error('Error fetching user votes:', error.message, error.code, error.details, error.hint)
     return []
   }
 
@@ -319,4 +319,300 @@ export async function toggleReaction(
     const counts = await getReactions(gameId)
     return { added: true, counts }
   }
+}
+
+// =====================================================
+// POLL FUNCTIONS
+// =====================================================
+
+export async function getPolls(): Promise<Poll[]> {
+  const { data, error } = await supabase
+    .from('polls')
+    .select(`
+      *,
+      creator:profiles!polls_created_by_fkey(*)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching polls:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function getActivePoll(): Promise<Poll | null> {
+  const { data, error } = await supabase
+    .from('polls')
+    .select(`
+      *,
+      creator:profiles!polls_created_by_fkey(*)
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching active poll:', error)
+    return null
+  }
+
+  return data
+}
+
+export async function getPoll(pollId: string): Promise<Poll | null> {
+  const { data, error } = await supabase
+    .from('polls')
+    .select(`
+      *,
+      creator:profiles!polls_created_by_fkey(*)
+    `)
+    .eq('id', pollId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching poll:', error)
+    return null
+  }
+
+  return data
+}
+
+export async function createPoll(
+  title: string,
+  userId: string,
+  endsAt?: Date,
+  maxRanks: number = 3
+): Promise<Poll | null> {
+  const client = createSupabaseBrowserClient()
+
+  const { data, error } = await client
+    .from('polls')
+    .insert({
+      title,
+      created_by: userId,
+      ends_at: endsAt?.toISOString() || null,
+      max_ranks: maxRanks,
+      status: 'active',
+    })
+    .select(`
+      *,
+      creator:profiles!polls_created_by_fkey(*)
+    `)
+    .single()
+
+  if (error) {
+    console.error('Error creating poll:', error)
+    return null
+  }
+
+  return data
+}
+
+export async function endPoll(pollId: string): Promise<boolean> {
+  const client = createSupabaseBrowserClient()
+
+  const { error } = await client
+    .from('polls')
+    .update({ status: 'ended' })
+    .eq('id', pollId)
+
+  if (error) {
+    console.error('Error ending poll:', error)
+    return false
+  }
+
+  return true
+}
+
+// =====================================================
+// RANKED VOTING FUNCTIONS
+// =====================================================
+
+export async function getRankedVotes(pollId: string): Promise<RankedVote[]> {
+  const { data, error } = await supabase
+    .from('ranked_votes')
+    .select(`
+      *,
+      voter:profiles!ranked_votes_user_id_fkey(*),
+      game:games!ranked_votes_game_id_fkey(*)
+    `)
+    .eq('poll_id', pollId)
+
+  if (error) {
+    console.error('Error fetching ranked votes:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function getUserRankedVotes(
+  pollId: string,
+  userId: string
+): Promise<RankedVote[]> {
+  const { data, error } = await supabase
+    .from('ranked_votes')
+    .select('*')
+    .eq('poll_id', pollId)
+    .eq('user_id', userId)
+    .order('rank', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching user ranked votes:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function submitRankedVotes(
+  pollId: string,
+  userId: string,
+  rankings: { gameId: string; rank: number }[]
+): Promise<boolean> {
+  const client = createSupabaseBrowserClient()
+
+  // First, delete existing votes for this user in this poll
+  const { error: deleteError } = await client
+    .from('ranked_votes')
+    .delete()
+    .eq('poll_id', pollId)
+    .eq('user_id', userId)
+
+  if (deleteError) {
+    console.error('Error deleting existing votes:', deleteError)
+    return false
+  }
+
+  // If no rankings, we're done (user cleared their votes)
+  if (rankings.length === 0) {
+    return true
+  }
+
+  // Insert new votes
+  const votes = rankings.map(r => ({
+    poll_id: pollId,
+    user_id: userId,
+    game_id: r.gameId,
+    rank: r.rank,
+  }))
+
+  const { error: insertError } = await client
+    .from('ranked_votes')
+    .insert(votes)
+
+  if (insertError) {
+    console.error('Error inserting ranked votes:', insertError)
+    return false
+  }
+
+  return true
+}
+
+export async function getVotersForGame(
+  pollId: string,
+  gameId: string
+): Promise<VoterInfo[]> {
+  const { data, error } = await supabase
+    .from('ranked_votes')
+    .select(`
+      rank,
+      voter:profiles!ranked_votes_user_id_fkey(*)
+    `)
+    .eq('poll_id', pollId)
+    .eq('game_id', gameId)
+    .order('rank', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching voters for game:', error)
+    return []
+  }
+
+  return (data || []).map(v => ({
+    profile: v.voter as unknown as Profile,
+    rank: v.rank,
+  }))
+}
+
+export async function calculateResults(pollId: string): Promise<GameResult[]> {
+  const votes = await getRankedVotes(pollId)
+
+  if (votes.length === 0) {
+    return []
+  }
+
+  // Group votes by game and calculate points
+  const gameResults: Record<string, {
+    game_id: string
+    game?: Game
+    total_points: number
+    first_choice_votes: number
+    second_choice_votes: number
+    third_choice_votes: number
+    voters: VoterInfo[]
+  }> = {}
+
+  for (const vote of votes) {
+    const gameId = vote.game_id
+
+    if (!gameResults[gameId]) {
+      gameResults[gameId] = {
+        game_id: gameId,
+        game: vote.game || undefined,
+        total_points: 0,
+        first_choice_votes: 0,
+        second_choice_votes: 0,
+        third_choice_votes: 0,
+        voters: [],
+      }
+    }
+
+    // Point calculation: 1st = 3pts, 2nd = 2pts, 3rd = 1pt
+    const points = vote.rank === 1 ? 3 : vote.rank === 2 ? 2 : 1
+    gameResults[gameId].total_points += points
+
+    if (vote.rank === 1) gameResults[gameId].first_choice_votes++
+    else if (vote.rank === 2) gameResults[gameId].second_choice_votes++
+    else if (vote.rank === 3) gameResults[gameId].third_choice_votes++
+
+    if (vote.voter) {
+      gameResults[gameId].voters.push({
+        profile: vote.voter,
+        rank: vote.rank,
+      })
+    }
+  }
+
+  // Convert to array and sort by total points
+  return Object.values(gameResults).sort((a, b) => {
+    // Primary: total points
+    if (b.total_points !== a.total_points) {
+      return b.total_points - a.total_points
+    }
+    // Tiebreaker 1: first choice votes
+    if (b.first_choice_votes !== a.first_choice_votes) {
+      return b.first_choice_votes - a.first_choice_votes
+    }
+    // Tiebreaker 2: second choice votes
+    return b.second_choice_votes - a.second_choice_votes
+  })
+}
+
+export async function getTotalVotersForPoll(pollId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('ranked_votes')
+    .select('user_id')
+    .eq('poll_id', pollId)
+
+  if (error) {
+    console.error('Error fetching voters count:', error)
+    return 0
+  }
+
+  // Count unique voters
+  const uniqueVoters = new Set(data?.map(v => v.user_id) || [])
+  return uniqueVoters.size
 }

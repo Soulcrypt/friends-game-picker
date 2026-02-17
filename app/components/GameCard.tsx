@@ -2,7 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { HiThumbUp, HiTrash, HiPlay, HiArrowLeft, HiExternalLink, HiUsers, HiRefresh, HiInformationCircle, HiStar } from 'react-icons/hi'
+import { HiThumbUp, HiTrash, HiPlay, HiArrowLeft, HiExternalLink, HiUsers, HiRefresh, HiInformationCircle, HiStar, HiHeart, HiX, HiCheck } from 'react-icons/hi'
+import { HiTrophy } from 'react-icons/hi2'
 import { FaWindows, FaApple, FaLinux, FaSteam } from 'react-icons/fa'
 import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
 import { FaXbox } from 'react-icons/fa'
@@ -64,14 +65,19 @@ interface GameCardProps {
   onPlayTrailer: () => void
   onRefresh: (gameId: string) => Promise<void>
   onPin?: () => void
+  onPollRankSelect?: (gameId: string, rank: number | null) => void
   rank: number
   index: number
   hasVoted: boolean
   isPinned?: boolean
   size?: CardSize
+  pollRank?: number | null // 1, 2, or 3 if user ranked this game in active poll
+  pollVoteCount?: number // total votes this game received in active poll
+  isPollActive?: boolean // whether there's an active poll
+  userPollRanks?: { [rank: number]: string } // rank -> gameId mapping for current user
 }
 
-export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefresh, onPin, rank, index, hasVoted, isPinned = false, size = 'medium' }: GameCardProps) {
+export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefresh, onPin, onPollRankSelect, rank, index, hasVoted, isPinned = false, size = 'medium', pollRank, pollVoteCount, isPollActive = false, userPollRanks = {} }: GameCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
   const [imgLoading, setImgLoading] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
@@ -86,6 +92,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
   const [currentScreenshot, setCurrentScreenshot] = useState(0)
   const [justVoted, setJustVoted] = useState(false)
   const [showQuickActions, setShowQuickActions] = useState(false)
+  const [showRankSelector, setShowRankSelector] = useState(false)
+  const [rankJustAssigned, setRankJustAssigned] = useState(false)
+  const [showHeartBurst, setShowHeartBurst] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -216,22 +225,38 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
       const x = (rect.left + rect.width / 2) / window.innerWidth
       const y = (rect.top + rect.height / 2) / window.innerHeight
 
+      // Smaller particle burst for interest button
       confetti({
-        particleCount: 50,
-        spread: 60,
+        particleCount: 30,
+        spread: 50,
         origin: { x, y },
-        colors: ['#8B5CF6', '#3B82F6', '#06B6D4'],
-        ticks: 100,
-        gravity: 1.2,
-        scalar: 0.8,
+        colors: ['#EC4899', '#F43F5E', '#F97316'],
+        ticks: 80,
+        gravity: 1.5,
+        scalar: 0.6,
+        shapes: ['circle'],
       })
 
       setJustVoted(true)
+      setShowHeartBurst(true)
       setTimeout(() => setJustVoted(false), 600)
+      setTimeout(() => setShowHeartBurst(false), 500)
     }
 
     onVote()
   }, [hasVoted, onVote])
+
+  // Handle rank selection with animation
+  const handleRankSelect = useCallback((gameId: string, rank: number | null) => {
+    if (onPollRankSelect) {
+      onPollRankSelect(gameId, rank)
+      if (rank !== null) {
+        setRankJustAssigned(true)
+        setTimeout(() => setRankJustAssigned(false), 600)
+      }
+      setShowRankSelector(false)
+    }
+  }, [onPollRankSelect])
 
   // Use steam_appid or rawg_id (both store Steam app ID)
   const steamAppId = game.steam_appid || game.rawg_id
@@ -428,11 +453,30 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
             </div>
           )}
 
+          {/* Poll rank badge - shows when user has ranked this game */}
+          {pollRank && (
+            <div
+              className={`absolute top-2 ${rankBadge ? 'right-12' : 'right-2'} z-10 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
+                pollRank === 1
+                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
+                  : pollRank === 2
+                  ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800'
+                  : 'bg-gradient-to-r from-amber-600 to-amber-700 text-white'
+              }`}
+              title={`Your ${pollRank === 1 ? '1st' : pollRank === 2 ? '2nd' : '3rd'} choice`}
+            >
+              <HiStar className="w-3 h-3" />
+              {pollRank === 1 ? '1st' : pollRank === 2 ? '2nd' : '3rd'}
+            </div>
+          )}
+
           {/* Cover area */}
           <div className="relative aspect-[460/215] overflow-hidden bg-white/[0.02]">
-            {/* Image loading blur placeholder */}
+            {/* Image loading skeleton with shimmer */}
             {imgLoading && showCover && (
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/30 to-cyan-900/30 animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-cyan-900/20">
+                <div className="absolute inset-0 skeleton-shimmer" />
+              </div>
             )}
 
             {showCover ? (
@@ -733,28 +777,167 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               onToggle={handleToggleReaction}
             />
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              animate={justVoted ? { scale: [1, 1.05, 1] } : {}}
-              onClick={handleVoteWithAnimation}
-              className={`w-full rounded-lg py-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                hasVoted
-                  ? 'text-white shadow-lg'
-                  : 'glass text-white/50 hover:text-white border border-white/[0.06] hover:border-white/[0.12]'
-              } ${justVoted ? 'ring-2 ring-purple-400/50 ring-offset-2 ring-offset-transparent' : ''}`}
-              style={
-                hasVoted
-                  ? {
-                      background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-                      boxShadow: justVoted ? '0 4px 25px rgba(139, 92, 246, 0.5)' : '0 4px 15px rgba(139, 92, 246, 0.25)',
-                    }
-                  : undefined
-              }
-            >
-              <HiThumbUp className={`w-4 h-4 ${hasVoted ? 'text-white' : ''} ${justVoted ? 'animate-bounce' : ''}`} />
-              <span>{game.votes}</span>
-            </motion.button>
+            {/* Poll voting section - when poll is active */}
+            {isPollActive && onPollRankSelect && (
+              <div className="space-y-2">
+                {/* Show current rank if ranked */}
+                {pollRank ? (
+                  <motion.div
+                    initial={rankJustAssigned ? { scale: 0.9, opacity: 0 } : false}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={`flex items-center gap-2 ${rankJustAssigned ? 'animate-rank-pulse' : ''}`}
+                  >
+                    <div className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                      pollRank === 1 ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30' :
+                      pollRank === 2 ? 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border border-gray-400/30' :
+                      'bg-gradient-to-r from-amber-600/20 to-amber-700/20 border border-amber-600/30'
+                    }`}>
+                      <HiTrophy className={`w-4 h-4 ${
+                        pollRank === 1 ? 'text-yellow-400' :
+                        pollRank === 2 ? 'text-gray-300' :
+                        'text-amber-500'
+                      }`} />
+                      <span className="text-sm font-semibold text-white">
+                        Your {pollRank === 1 ? '1st' : pollRank === 2 ? '2nd' : '3rd'} Choice
+                      </span>
+                      <span className="text-xs text-white/50 ml-auto">
+                        {pollRank === 1 ? '3' : pollRank === 2 ? '2' : '1'} pts
+                      </span>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); handleRankSelect(game.id, null) }}
+                      className="w-8 h-8 rounded-lg glass flex items-center justify-center text-white/50 hover:text-red-400 transition-colors"
+                      title="Remove from poll"
+                    >
+                      <HiX className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                ) : (
+                  /* Rank selector for unranked games */
+                  <AnimatePresence mode="wait">
+                    {showRankSelector ? (
+                      <motion.div
+                        key="selector"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2, type: 'spring', stiffness: 300, damping: 25 }}
+                        className="flex items-center gap-2 overflow-hidden"
+                      >
+                        {[1, 2, 3].map((r, index) => {
+                          const isOccupied = !!(userPollRanks[r] && userPollRanks[r] !== game.id)
+                          return (
+                            <motion.button
+                              key={r}
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ delay: index * 0.05, type: 'spring', stiffness: 400, damping: 20 }}
+                              whileHover={!isOccupied ? { scale: 1.08, y: -2 } : {}}
+                              whileTap={!isOccupied ? { scale: 0.95 } : {}}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRankSelect(game.id, r)
+                              }}
+                              disabled={isOccupied}
+                              className={`relative flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                isOccupied
+                                  ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                  : r === 1
+                                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg shadow-yellow-500/25 hover:shadow-yellow-500/40'
+                                  : r === 2
+                                  ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 shadow-lg hover:shadow-gray-400/30'
+                                  : 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-600/20 hover:shadow-amber-600/30'
+                              }`}
+                              title={isOccupied ? `Replaces existing choice` : `${r === 1 ? '3' : r === 2 ? '2' : '1'} points`}
+                            >
+                              {r === 1 ? '1st' : r === 2 ? '2nd' : '3rd'}
+                              {isOccupied && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 text-[8px] flex items-center justify-center">!</span>
+                              )}
+                            </motion.button>
+                          )
+                        })}
+                        <motion.button
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.15 }}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => { e.stopPropagation(); setShowRankSelector(false) }}
+                          className="w-8 h-8 rounded-lg glass flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                        >
+                          <HiX className="w-4 h-4" />
+                        </motion.button>
+                      </motion.div>
+                    ) : (
+                      <motion.button
+                        key="add-button"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={(e) => { e.stopPropagation(); setShowRankSelector(true) }}
+                        className="w-full rounded-lg py-2.5 text-sm font-medium glass text-purple-300 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 transition-all flex items-center justify-center gap-2 group"
+                      >
+                        <HiTrophy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        Add to Poll
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                )}
+
+                {/* Show poll points if game has votes */}
+                {pollVoteCount !== undefined && pollVoteCount > 0 && (
+                  <div className="flex items-center justify-center gap-2 text-xs text-white/40">
+                    <span>{pollVoteCount} poll points</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Interest button - when no poll active */}
+            {!isPollActive && (
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleVoteWithAnimation}
+                  className={`w-full rounded-lg py-2.5 text-sm font-medium transition-all flex items-center justify-center gap-2 relative overflow-hidden ${
+                    hasVoted
+                      ? 'text-white shadow-lg'
+                      : 'glass text-white/50 hover:text-white border border-white/[0.06] hover:border-white/[0.12]'
+                  } ${justVoted ? 'ring-2 ring-pink-400/50' : ''}`}
+                  style={
+                    hasVoted
+                      ? {
+                          background: 'linear-gradient(135deg, #EC4899 0%, #F43F5E 100%)',
+                          boxShadow: justVoted ? '0 4px 25px rgba(236, 72, 153, 0.5)' : '0 4px 15px rgba(236, 72, 153, 0.25)',
+                        }
+                      : undefined
+                  }
+                >
+                  <span className="relative">
+                    <HiHeart
+                      className={`w-4 h-4 transition-all duration-300 ${
+                        hasVoted ? 'text-white fill-current' : ''
+                      } ${justVoted ? 'animate-heart-fill' : ''}`}
+                    />
+                    {/* Burst effect */}
+                    {showHeartBurst && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="absolute w-4 h-4 rounded-full bg-pink-400/60 animate-heart-burst" />
+                      </span>
+                    )}
+                  </span>
+                  <span className={`transition-all ${justVoted ? 'animate-count-up' : ''}`}>
+                    {game.votes} interested
+                  </span>
+                </motion.button>
+              </div>
+            )}
           </div>
         </div>
 

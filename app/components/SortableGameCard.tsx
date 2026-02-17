@@ -14,6 +14,7 @@ interface SortableGameCardProps {
   onRefresh: (gameId: string) => Promise<void>
   onPin?: () => void
   onCompare?: () => void
+  onPollRankSelect?: (gameId: string, rank: number | null) => void
   rank: number
   index: number
   hasVoted: boolean
@@ -21,6 +22,10 @@ interface SortableGameCardProps {
   isComparing?: boolean
   size?: CardSize
   isDraggable?: boolean
+  pollRank?: number | null
+  pollVoteCount?: number
+  isPollActive?: boolean
+  userPollRanks?: { [rank: number]: string }
 }
 
 const SortableGameCard = forwardRef<HTMLDivElement, SortableGameCardProps>(function SortableGameCard({

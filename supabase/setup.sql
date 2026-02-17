@@ -160,3 +160,94 @@ ON CONFLICT (id) DO NOTHING;
 -- Create index for IGDB lookups
 CREATE INDEX IF NOT EXISTS idx_games_igdb_id ON games(igdb_id) WHERE igdb_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_games_primary_source ON games(primary_source);
+
+-- =====================================================
+-- DISCORD AUTH + RANKED VOTING SYSTEM
+-- =====================================================
+
+-- User profiles (synced from Discord OAuth)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  discord_id TEXT UNIQUE NOT NULL,
+  discord_username TEXT NOT NULL,
+  avatar_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Polls (voting sessions)
+CREATE TABLE IF NOT EXISTS polls (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL DEFAULT 'Game Night Vote',
+  created_by UUID REFERENCES profiles(id),
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+  ends_at TIMESTAMP,
+  max_ranks INTEGER DEFAULT 3,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Ranked votes (replaces simple votes for polls)
+CREATE TABLE IF NOT EXISTS ranked_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  poll_id UUID REFERENCES polls(id) ON DELETE CASCADE,
+  game_id TEXT REFERENCES games(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  rank INTEGER NOT NULL CHECK (rank >= 1 AND rank <= 5),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(poll_id, user_id, rank),  -- One game per rank per user per poll
+  UNIQUE(poll_id, user_id, game_id) -- Can't vote for same game twice
+);
+
+-- Enable Row Level Security for new tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ranked_votes ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist (for re-runs)
+DROP POLICY IF EXISTS "Public profiles read" ON profiles;
+DROP POLICY IF EXISTS "Users update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Public polls read" ON polls;
+DROP POLICY IF EXISTS "Authenticated create polls" ON polls;
+DROP POLICY IF EXISTS "Creator can update poll" ON polls;
+DROP POLICY IF EXISTS "Public votes read" ON ranked_votes;
+DROP POLICY IF EXISTS "Authenticated users vote" ON ranked_votes;
+DROP POLICY IF EXISTS "Users can change own votes" ON ranked_votes;
+
+-- Profiles RLS policies
+CREATE POLICY "Public profiles read" ON profiles
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users update own profile" ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users insert own profile" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Polls RLS policies
+CREATE POLICY "Public polls read" ON polls
+  FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated create polls" ON polls
+  FOR INSERT WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Creator can update poll" ON polls
+  FOR UPDATE USING (auth.uid() = created_by);
+
+-- Ranked votes RLS policies
+CREATE POLICY "Public votes read" ON ranked_votes
+  FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users vote" ON ranked_votes
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can change own votes" ON ranked_votes
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Indexes for efficient queries
+CREATE INDEX IF NOT EXISTS idx_ranked_votes_poll ON ranked_votes(poll_id);
+CREATE INDEX IF NOT EXISTS idx_ranked_votes_user ON ranked_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_ranked_votes_game ON ranked_votes(game_id);
+CREATE INDEX IF NOT EXISTS idx_polls_status ON polls(status);
+CREATE INDEX IF NOT EXISTS idx_polls_created_by ON polls(created_by);
+CREATE INDEX IF NOT EXISTS idx_profiles_discord_id ON profiles(discord_id);

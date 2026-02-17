@@ -162,3 +162,70 @@ export interface IGDBGame {
     name: string
   }[]
 }
+
+// Discord Auth + Ranked Voting Types
+
+export interface Profile {
+  id: string // UUID from auth.users
+  discord_id: string
+  discord_username: string
+  avatar_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PollStatus = 'active' | 'ended'
+
+export interface Poll {
+  id: string
+  title: string
+  created_by: string // UUID reference to profiles
+  status: PollStatus
+  ends_at: string | null
+  max_ranks: number
+  created_at: string
+  // Joined data
+  creator?: Profile
+}
+
+export interface RankedVote {
+  id: string
+  poll_id: string
+  game_id: string
+  user_id: string
+  rank: number // 1, 2, or 3
+  created_at: string
+  // Joined data
+  voter?: Profile
+  game?: Game
+}
+
+export interface VoterInfo {
+  profile: Profile
+  rank: number
+}
+
+export interface GameWithVoters extends Game {
+  voters: VoterInfo[]
+  totalPoints: number
+}
+
+export interface PollResults {
+  poll: Poll
+  rankings: GameResult[]
+  totalVoters: number
+}
+
+export interface GameResult {
+  game_id: string
+  game?: Game
+  total_points: number
+  first_choice_votes: number
+  second_choice_votes: number
+  third_choice_votes: number
+  voters: VoterInfo[]
+}
+
+export interface UserRankings {
+  [gameId: string]: number // gameId -> rank (1, 2, or 3)
+}
