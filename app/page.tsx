@@ -924,11 +924,8 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 sm:p-8 max-w-7xl mx-auto">
       <div className="pt-4">
-        {/* Header with Login */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">
-            What are we playing?
-          </h1>
+        {/* Login Button - top right */}
+        <div className="flex justify-end mb-4">
           <LoginButton />
         </div>
 

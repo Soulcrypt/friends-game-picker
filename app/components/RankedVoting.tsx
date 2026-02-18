@@ -268,7 +268,7 @@ export default function RankedVoting({ poll, games, onVoteSubmitted }: RankedVot
                   }`}
                 >
                   <span className="text-lg font-bold text-white">{slot.rank}</span>
-                  <span className="text-[9px] text-white/80">{slot.points}pts</span>
+                  <span className="text-xs text-white/80">{slot.points}pts</span>
                 </div>
               </div>
 

@@ -272,14 +272,14 @@ export default function PollResults({ poll, onCreateNewPoll }: PollResultsProps)
                         }`}
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 ring-2 ring-[#08080C] flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 ring-2 ring-[#08080C] flex items-center justify-center text-xs font-bold text-white">
                         {voter.profile.discord_username[0].toUpperCase()}
                       </div>
                     )}
                   </div>
                 ))}
                 {winner.voters.length > 8 && (
-                  <div className="w-7 h-7 rounded-full bg-white/10 ring-2 ring-[#08080C] flex items-center justify-center text-[10px] font-medium text-white/60">
+                  <div className="w-7 h-7 rounded-full bg-white/10 ring-2 ring-[#08080C] flex items-center justify-center text-xs font-medium text-white/60">
                     +{winner.voters.length - 8}
                   </div>
                 )}
@@ -353,7 +353,7 @@ export default function PollResults({ poll, onCreateNewPoll }: PollResultsProps)
                   <div className={`text-lg font-bold ${style.textColor}`}>
                     {animateResults ? <AnimatedCounter value={result.total_points} duration={0.8 + index * 0.1} /> : result.total_points}
                   </div>
-                  <div className="text-[10px] text-white/40">points</div>
+                  <div className="text-xs text-white/40">points</div>
                 </div>
 
                 {/* Voter Avatars */}
@@ -371,7 +371,7 @@ export default function PollResults({ poll, onCreateNewPoll }: PollResultsProps)
                       ) : (
                         <div
                           key={voter.profile.id}
-                          className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 ring-1 ring-[#08080C] flex items-center justify-center text-[9px] font-bold text-white"
+                          className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 ring-1 ring-[#08080C] flex items-center justify-center text-xs font-bold text-white"
                           title={voter.profile.discord_username}
                         >
                           {voter.profile.discord_username[0].toUpperCase()}
@@ -379,7 +379,7 @@ export default function PollResults({ poll, onCreateNewPoll }: PollResultsProps)
                       )
                     ))}
                     {result.voters.length > 4 && (
-                      <div className="w-6 h-6 rounded-full bg-white/10 ring-1 ring-[#08080C] flex items-center justify-center text-[9px] font-medium text-white/60">
+                      <div className="w-6 h-6 rounded-full bg-white/10 ring-1 ring-[#08080C] flex items-center justify-center text-xs font-medium text-white/60">
                         +{result.voters.length - 4}
                       </div>
                     )}

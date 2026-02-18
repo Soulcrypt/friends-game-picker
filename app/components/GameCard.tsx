@@ -471,11 +471,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
           )}
 
           {/* Cover area */}
-          <div className="relative aspect-[460/215] overflow-hidden bg-white/[0.02]">
+          <div className="relative aspect-[460/215] overflow-hidden bg-surface-raised">
             {/* Image loading skeleton with shimmer */}
             {imgLoading && showCover && (
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-cyan-900/20">
-                <div className="absolute inset-0 skeleton-shimmer" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/10 via-accent-blue/10 to-accent-cyan/10">
+                <div className="absolute inset-0 animate-shimmer" />
               </div>
             )}
 
@@ -483,7 +483,7 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               <img
                 src={game.cover}
                 alt={game.title}
-                className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-standard group-hover:scale-105 ${
                   imgLoading ? 'opacity-0 scale-105 blur-sm' : 'opacity-100 scale-100 blur-0'
                 }`}
                 style={{ opacity: (showVideo && videoReady) || showScreenshots ? 0 : imgLoading ? 0 : 1 }}
@@ -491,9 +491,9 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                 onError={() => { setImgFailed(true); setImgLoading(false) }}
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex flex-col items-center justify-center gap-2 p-4">
+              <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.02] flex flex-col items-center justify-center gap-2 p-4">
                 <span className="text-3xl text-white/10">?</span>
-                <span className="text-[11px] text-white/20 text-center leading-tight truncate w-full">
+                <span className="text-xs text-white/30 text-center leading-tight truncate w-full">
                   {game.title}
                 </span>
               </div>
@@ -612,19 +612,19 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               )}
             </AnimatePresence>
 
-            <div className="absolute bottom-0 left-0 right-0 p-3 space-y-1">
+            <div className="absolute bottom-0 left-0 right-0 p-3 space-y-1.5">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <div className={`bg-gradient-to-r ${getPriceBadgeStyle()} backdrop-blur-sm px-2 py-0.5 rounded-md text-[10px] font-semibold text-white`}>
+                <div className={`bg-gradient-to-r ${getPriceBadgeStyle()} backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-white`}>
                   {game.price}
                 </div>
                 {game.metacritic && (
                   <div
-                    className={`backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    className={`backdrop-blur-sm px-2 py-1 rounded-md text-xs font-semibold ${
                       game.metacritic >= 75
-                        ? 'bg-emerald-500/60 text-white'
+                        ? 'bg-emerald-500/50 text-emerald-100'
                         : game.metacritic >= 50
-                        ? 'bg-yellow-500/60 text-white'
-                        : 'bg-red-500/60 text-white'
+                        ? 'bg-amber-500/50 text-amber-100'
+                        : 'bg-red-500/50 text-red-100'
                     }`}
                   >
                     {game.metacritic}
@@ -632,24 +632,25 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                 )}
                 {/* Platform icons */}
                 {game.platforms && (
-                  <div className="flex items-center gap-1 backdrop-blur-sm bg-black/40 px-1.5 py-0.5 rounded-md">
-                    {game.platforms.windows && <FaWindows className="w-3 h-3 text-blue-300" title="Windows" />}
-                    {game.platforms.mac && <FaApple className="w-3 h-3 text-gray-300" title="macOS" />}
-                    {game.platforms.linux && <FaLinux className="w-3 h-3 text-orange-300" title="Linux" />}
+                  <div className="flex items-center gap-1 backdrop-blur-sm bg-black/50 px-2 py-1 rounded-md">
+                    {game.platforms.windows && <FaWindows className="w-3 h-3 text-white/70" title="Windows" />}
+                    {game.platforms.mac && <FaApple className="w-3 h-3 text-white/70" title="macOS" />}
+                    {game.platforms.linux && <FaLinux className="w-3 h-3 text-white/70" title="Linux" />}
                   </div>
                 )}
                 {/* Store availability badges */}
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-1">
                   {game.steam_appid && (
                     <a
                       href={`https://store.steampowered.com/app/${game.steam_appid}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="backdrop-blur-sm bg-[#1B2838]/80 hover:bg-[#1B2838] px-1 py-0.5 rounded transition-colors"
+                      className="backdrop-blur-sm bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
                       title="View on Steam"
+                      aria-label="View on Steam"
                     >
-                      <FaSteam className="w-3 h-3 text-[#66C0F4]" />
+                      <FaSteam className="w-3 h-3 text-white/80" />
                     </a>
                   )}
                   {game.epic_id && (
@@ -658,10 +659,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="backdrop-blur-sm bg-[#2A2A2A]/80 hover:bg-[#2A2A2A] px-1 py-0.5 rounded transition-colors"
+                      className="backdrop-blur-sm bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
                       title="View on Epic Games"
+                      aria-label="View on Epic Games"
                     >
-                      <SiEpicgames className="w-3 h-3 text-white" />
+                      <SiEpicgames className="w-3 h-3 text-white/80" />
                     </a>
                   )}
                   {game.gog_id && (
@@ -670,10 +672,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="backdrop-blur-sm bg-[#86328A]/80 hover:bg-[#86328A] px-1 py-0.5 rounded transition-colors"
+                      className="backdrop-blur-sm bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
                       title="View on GOG"
+                      aria-label="View on GOG"
                     >
-                      <SiGogdotcom className="w-3 h-3 text-white" />
+                      <SiGogdotcom className="w-3 h-3 text-white/80" />
                     </a>
                   )}
                   {game.xbox_id && (
@@ -682,46 +685,47 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="backdrop-blur-sm bg-[#107C10]/80 hover:bg-[#107C10] px-1 py-0.5 rounded transition-colors"
+                      className="backdrop-blur-sm bg-white/10 hover:bg-white/20 p-1.5 rounded transition-colors"
                       title="View on Xbox"
+                      aria-label="View on Xbox"
                     >
-                      <FaXbox className="w-3 h-3 text-white" />
+                      <FaXbox className="w-3 h-3 text-white/80" />
                     </a>
                   )}
                 </div>
                 {/* Game Pass badge */}
                 {game.platform_availability?.xbox?.gamePass && (
-                  <div className="backdrop-blur-sm bg-[#107C10]/80 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                    <FaXbox className="w-2.5 h-2.5 text-white" />
-                    <span className="text-[9px] font-bold text-white">Game Pass</span>
+                  <div className="backdrop-blur-sm bg-emerald-600/60 px-2 py-1 rounded-md flex items-center gap-1">
+                    <FaXbox className="w-3 h-3 text-white" />
+                    <span className="text-xs font-medium text-white">Game Pass</span>
                   </div>
                 )}
                 {/* Early Access badge */}
                 {game.categories?.some(c => c.toLowerCase().includes('early access')) && (
-                  <div className="backdrop-blur-sm bg-amber-500/60 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white">
+                  <div className="backdrop-blur-sm bg-amber-500/50 px-2 py-1 rounded-md text-xs font-medium text-amber-100">
                     Early Access
                   </div>
                 )}
                 {game.categories?.some(c => c.includes('Co-op')) && (
-                  <div className="backdrop-blur-sm bg-purple-500/60 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white">
+                  <div className="backdrop-blur-sm bg-purple-500/50 px-2 py-1 rounded-md text-xs font-medium text-purple-100">
                     Co-op
                   </div>
                 )}
                 {game.categories?.some(c => c.includes('Multi-player')) && !game.categories?.some(c => c.includes('Co-op')) && (
-                  <div className="backdrop-blur-sm bg-blue-500/60 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white">
+                  <div className="backdrop-blur-sm bg-blue-500/50 px-2 py-1 rounded-md text-xs font-medium text-blue-100">
                     MP
                   </div>
                 )}
               </div>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-[13px] text-white line-clamp-2 leading-snug drop-shadow-lg flex-1">
+                <h3 className="font-medium text-sm text-white line-clamp-2 leading-snug drop-shadow-lg flex-1">
                   {game.title}
                 </h3>
                 {/* Primary source badge */}
                 {game.primary_source && game.primary_source !== 'steam' && (
-                  <div className={`flex-shrink-0 backdrop-blur-sm ${getSourceStyles(game.primary_source).bg} px-1.5 py-0.5 rounded flex items-center gap-1`}>
-                    <SourceIcon source={game.primary_source} className="w-2.5 h-2.5" />
-                    <span className={`text-[9px] font-medium ${getSourceStyles(game.primary_source).text}`}>
+                  <div className={`flex-shrink-0 backdrop-blur-sm ${getSourceStyles(game.primary_source).bg} px-2 py-1 rounded flex items-center gap-1`}>
+                    <SourceIcon source={game.primary_source} className="w-3 h-3" />
+                    <span className={`text-xs font-medium ${getSourceStyles(game.primary_source).text}`}>
                       {getSourceStyles(game.primary_source).name}
                     </span>
                   </div>
@@ -730,10 +734,10 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
             </div>
           </div>
 
-          <div className="p-3.5 space-y-3">
+          <div className="p-4 space-y-3">
             {/* Player modes - prominent display */}
             {game.categories && game.categories.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {game.categories
                   .filter(c =>
                     c === 'Single-player' ||
@@ -745,11 +749,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                   .map(cat => (
                     <span
                       key={cat}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                        cat.includes('Co-op') ? 'bg-purple-500/30 text-purple-300' :
-                        cat.includes('Multi') ? 'bg-blue-500/30 text-blue-300' :
-                        cat === 'Single-player' ? 'bg-gray-500/30 text-gray-300' :
-                        'bg-amber-500/30 text-amber-300'
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
+                        cat.includes('Co-op') ? 'bg-purple-500/20 text-purple-300' :
+                        cat.includes('Multi') ? 'bg-blue-500/20 text-blue-300' :
+                        cat === 'Single-player' ? 'bg-white/10 text-white/60' :
+                        'bg-amber-500/20 text-amber-300'
                       }`}
                     >
                       <HiUsers className="w-3 h-3" />
@@ -760,11 +764,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
             )}
 
             {/* Genre tags */}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {game.tags.slice(0, 3).map(tag => (
                 <span
                   key={tag}
-                  className="glass px-2 py-0.5 rounded-md text-[11px] tracking-wide font-medium text-white/40"
+                  className="glass px-2 py-1 rounded-md text-xs font-medium text-white/50"
                 >
                   {tag}
                 </span>
@@ -1028,21 +1032,21 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
 
             {/* Game details */}
             <div className="p-4 space-y-3">
-              <h3 className="font-bold text-white text-lg leading-tight">{detailedGame.title}</h3>
+              <h3 className="font-semibold text-white text-base leading-tight">{detailedGame.title}</h3>
 
               {/* Meta info row */}
               <div className="flex flex-wrap items-center gap-2">
-                <div className={`bg-gradient-to-r ${getPriceBadgeStyle()} px-2 py-0.5 rounded-md text-[11px] font-semibold text-white`}>
+                <div className={`bg-gradient-to-r ${getPriceBadgeStyle()} px-2 py-1 rounded-md text-xs font-medium text-white`}>
                   {detailedGame.price}
                 </div>
                 {detailedGame.metacritic && (
                   <div
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                    className={`px-2 py-1 rounded-md text-xs font-semibold ${
                       detailedGame.metacritic >= 75
-                        ? 'bg-emerald-500/60 text-white'
+                        ? 'bg-emerald-500/50 text-emerald-100'
                         : detailedGame.metacritic >= 50
-                        ? 'bg-yellow-500/60 text-white'
-                        : 'bg-red-500/60 text-white'
+                        ? 'bg-amber-500/50 text-amber-100'
+                        : 'bg-red-500/50 text-red-100'
                     }`}
                   >
                     {detailedGame.metacritic} Metacritic
@@ -1053,7 +1057,7 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               {/* Player Modes */}
               {detailedGame.categories && detailedGame.categories.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <HiUsers className="w-3.5 h-3.5 text-white/40" />
+                  <HiUsers className="w-3.5 h-3.5 text-white/50" />
                   {detailedGame.categories
                     .filter(c =>
                       c.includes('player') ||
@@ -1065,11 +1069,11 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
                     .map(cat => (
                       <span
                         key={cat}
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-medium ${
-                          cat.includes('Co-op') ? 'bg-purple-500/40 text-purple-200' :
-                          cat.includes('Multi') ? 'bg-blue-500/40 text-blue-200' :
-                          cat.includes('Single') ? 'bg-gray-500/40 text-gray-200' :
-                          'bg-amber-500/40 text-amber-200'
+                        className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          cat.includes('Co-op') ? 'bg-purple-500/30 text-purple-200' :
+                          cat.includes('Multi') ? 'bg-blue-500/30 text-blue-200' :
+                          cat.includes('Single') ? 'bg-white/10 text-white/60' :
+                          'bg-amber-500/30 text-amber-200'
                         }`}
                       >
                         {cat}
@@ -1081,22 +1085,22 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               {/* Platforms */}
               {detailedGame.platforms && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-white/40 uppercase tracking-wider">Platforms:</span>
-                  <div className="flex gap-1.5">
-                    {detailedGame.platforms.windows && <FaWindows className="w-3.5 h-3.5 text-white/60" title="Windows" />}
-                    {detailedGame.platforms.mac && <FaApple className="w-3.5 h-3.5 text-white/60" title="macOS" />}
-                    {detailedGame.platforms.linux && <FaLinux className="w-3.5 h-3.5 text-white/60" title="Linux" />}
+                  <span className="text-xs text-white/50 uppercase tracking-wide">Platforms:</span>
+                  <div className="flex gap-2">
+                    {detailedGame.platforms.windows && <FaWindows className="w-4 h-4 text-white/60" title="Windows" />}
+                    {detailedGame.platforms.mac && <FaApple className="w-4 h-4 text-white/60" title="macOS" />}
+                    {detailedGame.platforms.linux && <FaLinux className="w-4 h-4 text-white/60" title="Linux" />}
                   </div>
                 </div>
               )}
 
               {/* Genres */}
               {detailedGame.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {detailedGame.tags.map(tag => (
                     <span
                       key={tag}
-                      className="glass px-2 py-0.5 rounded-md text-[10px] font-medium text-white/50"
+                      className="glass px-2 py-1 rounded-md text-xs font-medium text-white/50"
                     >
                       {tag}
                     </span>
@@ -1106,25 +1110,25 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
 
               {/* Release date */}
               {detailedGame.release_date && (
-                <div className="text-[11px] text-white/40">
-                  <span className="uppercase tracking-wider">Released:</span>{' '}
-                  <span className="text-white/60">{detailedGame.release_date}</span>
+                <div className="text-xs text-white/50">
+                  <span className="uppercase tracking-wide">Released:</span>{' '}
+                  <span className="text-white/70">{detailedGame.release_date}</span>
                 </div>
               )}
 
               {/* Developer/Publisher */}
               {(detailedGame.developers || detailedGame.publishers) && (
-                <div className="text-[11px] text-white/40 space-y-0.5">
+                <div className="text-xs text-white/50 space-y-1">
                   {detailedGame.developers && detailedGame.developers.length > 0 && (
                     <div>
-                      <span className="uppercase tracking-wider">Developer:</span>{' '}
-                      <span className="text-white/60">{detailedGame.developers.join(', ')}</span>
+                      <span className="uppercase tracking-wide">Developer:</span>{' '}
+                      <span className="text-white/70">{detailedGame.developers.join(', ')}</span>
                     </div>
                   )}
                   {detailedGame.publishers && detailedGame.publishers.length > 0 && (
                     <div>
-                      <span className="uppercase tracking-wider">Publisher:</span>{' '}
-                      <span className="text-white/60">{detailedGame.publishers.join(', ')}</span>
+                      <span className="uppercase tracking-wide">Publisher:</span>{' '}
+                      <span className="text-white/70">{detailedGame.publishers.join(', ')}</span>
                     </div>
                   )}
                 </div>
@@ -1133,16 +1137,16 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               {/* Description */}
               {loadingDetails ? (
                 <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-white/[0.05] animate-pulse" />
-                  <div className="h-3 w-3/4 rounded bg-white/[0.05] animate-pulse" />
-                  <div className="h-3 w-5/6 rounded bg-white/[0.05] animate-pulse" />
+                  <div className="h-3 w-full rounded bg-white/5 animate-shimmer" />
+                  <div className="h-3 w-3/4 rounded bg-white/5 animate-shimmer" />
+                  <div className="h-3 w-5/6 rounded bg-white/5 animate-shimmer" />
                 </div>
               ) : detailedGame.short_description ? (
-                <p className="text-[12px] text-white/50 leading-relaxed">
+                <p className="text-sm text-white/60 leading-relaxed">
                   {cleanDescription(detailedGame.short_description)}
                 </p>
               ) : detailedGame.description ? (
-                <p className="text-[12px] text-white/50 leading-relaxed line-clamp-6">
+                <p className="text-sm text-white/60 leading-relaxed line-clamp-6">
                   {cleanDescription(detailedGame.description)}
                 </p>
               ) : null}
@@ -1151,7 +1155,7 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               {detailedGame.trailer_url && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onPlayTrailer() }}
-                  className="w-full glass glass-hover rounded-lg py-2 text-sm font-medium text-white/70 hover:text-white flex items-center justify-center gap-2 transition-colors"
+                  className="w-full btn-secondary rounded-xl py-3 text-sm flex items-center justify-center gap-2"
                 >
                   <HiPlay className="w-4 h-4" />
                   Watch Trailer
@@ -1161,23 +1165,14 @@ export default function GameCard({ game, onVote, onRemove, onPlayTrailer, onRefr
               {/* Vote button on back */}
               <motion.button
                 whileTap={{ scale: 0.98 }}
-                animate={justVoted ? { scale: [1, 1.05, 1] } : {}}
                 onClick={handleVoteWithAnimation}
-                className={`w-full rounded-lg py-2 text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                className={`w-full rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2 ${
                   hasVoted
-                    ? 'text-white shadow-lg'
-                    : 'glass text-white/50 hover:text-white border border-white/[0.06] hover:border-white/[0.12]'
-                } ${justVoted ? 'ring-2 ring-purple-400/50' : ''}`}
-                style={
-                  hasVoted
-                    ? {
-                        background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-                        boxShadow: justVoted ? '0 4px 25px rgba(139, 92, 246, 0.5)' : '0 4px 15px rgba(139, 92, 246, 0.25)',
-                      }
-                    : undefined
-                }
+                    ? 'btn-primary'
+                    : 'btn-secondary'
+                } ${justVoted ? 'animate-pop' : ''}`}
               >
-                <HiThumbUp className={`w-4 h-4 ${hasVoted ? 'text-white' : ''} ${justVoted ? 'animate-bounce' : ''}`} />
+                <HiThumbUp className={`w-4 h-4 ${justVoted ? 'animate-count' : ''}`} />
                 <span>{game.votes} votes</span>
               </motion.button>
             </div>

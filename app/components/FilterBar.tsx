@@ -64,13 +64,13 @@ interface FilterBarProps {
 const PLAYER_MODE_FILTERS = ['Single-player', 'Multiplayer', 'Co-op', 'PvP']
 const PRICE_FILTERS = ['Free', 'Paid']
 
-// Source filter definitions with icons and colors
-const SOURCE_FILTERS: { source: GameSource; icon: JSX.Element; label: string; bg: string; activeBg: string }[] = [
-  { source: 'steam', icon: <FaSteam className="w-3 h-3" />, label: 'Steam', bg: 'bg-[#1B2838]/50', activeBg: 'bg-[#1B2838]' },
-  { source: 'epic', icon: <SiEpicgames className="w-3 h-3" />, label: 'Epic', bg: 'bg-[#2A2A2A]/50', activeBg: 'bg-[#2A2A2A]' },
-  { source: 'xbox', icon: <FaXbox className="w-3 h-3" />, label: 'Xbox', bg: 'bg-[#107C10]/50', activeBg: 'bg-[#107C10]' },
-  { source: 'gog', icon: <SiGogdotcom className="w-3 h-3" />, label: 'GOG', bg: 'bg-[#86328A]/50', activeBg: 'bg-[#86328A]' },
-  { source: 'igdb', icon: <TbWorldWww className="w-3 h-3" />, label: 'Other', bg: 'bg-purple-900/30', activeBg: 'bg-purple-900/60' },
+// Source filter definitions with icons and colors - using consistent glass styling
+const SOURCE_FILTERS: { source: GameSource; icon: JSX.Element; label: string }[] = [
+  { source: 'steam', icon: <FaSteam className="w-3 h-3" />, label: 'Steam' },
+  { source: 'epic', icon: <SiEpicgames className="w-3 h-3" />, label: 'Epic' },
+  { source: 'xbox', icon: <FaXbox className="w-3 h-3" />, label: 'Xbox' },
+  { source: 'gog', icon: <SiGogdotcom className="w-3 h-3" />, label: 'GOG' },
+  { source: 'igdb', icon: <TbWorldWww className="w-3 h-3" />, label: 'Other' },
 ]
 
 // Icons for specific filters
@@ -130,24 +130,16 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
   const FilterButton = ({ filter, small = false }: { filter: string; small?: boolean }) => (
     <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={() => onToggleFilter(filter)}
-      className={`rounded-full font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-        small ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+      className={`rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+        small ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs'
       } ${
         activeFilters.includes(filter)
-          ? 'text-white shadow-lg'
-          : 'glass text-white/50 hover:text-white/80'
+          ? 'btn-primary'
+          : 'btn-secondary'
       }`}
-      style={
-        activeFilters.includes(filter)
-          ? {
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-              boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-            }
-          : undefined
-      }
     >
       {FILTER_ICONS[filter]}
       {filter}
@@ -191,10 +183,10 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           {/* Header row */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-3xl font-bold tracking-tight leading-none truncate">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight leading-none truncate">
                 <span className="text-gradient">What are we playing?</span>
               </h1>
-              <p className="text-[11px] text-white/30 mt-1 uppercase tracking-widest font-medium">
+              <p className="text-xs text-white/40 mt-1.5 uppercase tracking-wide font-medium">
                 {gameCount} {gameCount === 1 ? 'game' : 'games'} in the pool
               </p>
             </div>
@@ -202,34 +194,34 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             {/* Action buttons */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Secondary actions - hidden on mobile */}
-              <div className="hidden sm:flex items-center gap-1.5">
+              <div className="hidden sm:flex items-center gap-2">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={onRefreshAll}
                   disabled={gameCount === 0 || isRefreshing}
-                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                  className="btn-secondary rounded-xl p-2.5 disabled:opacity-50"
                   title="Refresh all games"
                   aria-label="Refresh all games"
                 >
-                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin-slow' : ''}`} aria-hidden="true" />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={onImport}
-                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors"
+                  className="btn-secondary rounded-xl p-2.5"
                   title="Import games"
                   aria-label="Import games from file"
                 >
                   <HiUpload className="w-4 h-4" aria-hidden="true" />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={onShare}
                   disabled={gameCount === 0}
-                  className="glass glass-hover rounded-lg p-2 text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                  className="btn-secondary rounded-xl p-2.5 disabled:opacity-50"
                   title="Share collection"
                   aria-label="Share game collection"
                 >
@@ -239,11 +231,11 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
               {/* Pick For Us - hidden on mobile (available in menu) */}
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={onPickForUs}
                 disabled={gameCount === 0}
-                className="hidden sm:flex glass glass-hover rounded-xl px-3 py-2 text-sm font-medium text-white/70 hover:text-white items-center gap-2 transition-colors disabled:opacity-50"
+                className="hidden sm:flex btn-secondary rounded-xl px-4 py-2.5 text-sm items-center gap-2 disabled:opacity-50"
               >
                 <HiSparkles className="w-4 h-4" />
                 <span>Pick For Us</span>
@@ -251,14 +243,10 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
               {/* Add Game button */}
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={onAddGame}
-                className="rounded-xl px-3 sm:px-4 py-2 text-sm font-medium text-white flex items-center gap-2 min-h-[44px]"
-                style={{
-                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-                  boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
-                }}
+                className="btn-primary rounded-xl px-4 py-2.5 text-sm flex items-center gap-2 min-h-[44px]"
               >
                 <HiPlus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add Game</span>
@@ -266,10 +254,10 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
               {/* Mobile menu button */}
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setMobileMenuOpen(true)}
-                className="sm:hidden glass glass-hover rounded-xl p-2.5 text-white/70 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="sm:hidden btn-secondary rounded-xl p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Menu"
                 aria-label="Open menu"
                 aria-expanded={mobileMenuOpen}
@@ -328,19 +316,19 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             {onToggleSourceFilter && availableSources.length > 0 && (
               <>
                 {(priceFilters.length > 0 || playerModeFilters.length > 0) && (
-                  <div className="w-px h-5 bg-white/10 mx-1" />
+                  <div className="w-px h-5 bg-white/10 mx-2" />
                 )}
-                <span className="text-[10px] text-white/30 uppercase tracking-wider">Store:</span>
-                {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label, bg, activeBg }) => (
+                <span className="text-xs text-white/40 uppercase tracking-wide">Store:</span>
+                {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label }) => (
                   <motion.button
                     key={source}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => onToggleSourceFilter(source)}
-                    className={`rounded-full font-medium transition-all whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 text-[11px] ${
+                    className={`rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-1.5 px-3 py-2 text-xs ${
                       activeSourceFilters.includes(source)
-                        ? `${activeBg} text-white shadow-lg`
-                        : `${bg} text-white/50 hover:text-white/80`
+                        ? 'btn-primary'
+                        : 'btn-secondary'
                     }`}
                   >
                     {icon}
@@ -354,7 +342,7 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           {/* Genre filters */}
           {genreFilters.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] text-white/30 uppercase tracking-wider mr-1">
+              <span className="text-xs text-white/30 uppercase tracking-wider mr-1">
                 <HiTag className="w-3 h-3 inline mr-1" />
                 Genres
               </span>
@@ -364,7 +352,7 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
               {hiddenGenres.length > 0 && (
                 <button
                   onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className="px-2.5 py-1 rounded-full text-[11px] font-medium glass text-white/40 hover:text-white/70 flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-full text-xs font-medium glass text-white/40 hover:text-white/70 flex items-center gap-1"
                 >
                   +{hiddenGenres.length} more
                   <HiChevronDown className={`w-3 h-3 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`} />
@@ -392,12 +380,12 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           {/* Active filters count & clear */}
           {activeFilters.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-white/40">
+              <span className="text-xs text-white/40">
                 {activeFilters.length} filter{activeFilters.length !== 1 ? 's' : ''} active
               </span>
               <button
                 onClick={() => activeFilters.forEach(f => onToggleFilter(f))}
-                className="text-[11px] text-purple-400 hover:text-purple-300"
+                className="text-xs text-purple-400 hover:text-purple-300"
               >
                 Clear all
               </button>
@@ -452,7 +440,7 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                   <button
                     key={size}
                     onClick={() => onCardSizeChange(size)}
-                    className={`px-2.5 py-1.5 text-[10px] font-medium transition-all ${
+                    className={`px-2.5 py-1.5 text-xs font-medium transition-all ${
                       cardSize === size ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
                     }`}
                     title={`${size.charAt(0).toUpperCase() + size.slice(1)} cards`}
@@ -465,12 +453,12 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
             {/* Group by */}
             <div className="flex items-center glass rounded-lg overflow-hidden">
-              <span className="px-2 text-[10px] text-white/30">Group:</span>
+              <span className="px-2 text-xs text-white/30">Group:</span>
               {(['none', 'genre', 'price'] as const).map((group) => (
                 <button
                   key={group}
                   onClick={() => onGroupByChange(group)}
-                  className={`px-2 py-1.5 text-[10px] font-medium transition-all ${
+                  className={`px-2 py-1.5 text-xs font-medium transition-all ${
                     groupBy === group ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
                   }`}
                 >
