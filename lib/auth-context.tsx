@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { createSupabaseBrowserClient } from './supabase'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from './types'
@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const initAttempted = useRef(false)
 
   // Use memoized client to avoid re-creating
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
@@ -53,19 +54,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Get initial session
+    // Prevent double initialization in strict mode
+    if (initAttempted.current) return
+    initAttempted.current = true
+
+    // Get initial session with retry logic
     const initAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
-        setSession(initialSession)
-        setUser(initialSession?.user ?? null)
+        // First try to get existing session
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
 
-        if (initialSession?.user) {
-          const profileData = await fetchProfile(initialSession.user.id)
-          setProfile(profileData)
+        if (sessionError) {
+          console.error('Session error, clearing state:', sessionError)
+          // Clear potentially corrupted auth state
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+
+        // If session exists, validate it's still fresh
+        if (initialSession) {
+          const expiresAt = initialSession.expires_at
+          const now = Math.floor(Date.now() / 1000)
+
+          // If session is expired or will expire in next 60 seconds, try refresh
+          if (expiresAt && expiresAt - now < 60) {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+
+            if (refreshError || !refreshedSession) {
+              // Refresh failed, clear session
+              console.log('Session expired, clearing auth state')
+              setSession(null)
+              setUser(null)
+              setProfile(null)
+              setLoading(false)
+              return
+            }
+
+            setSession(refreshedSession)
+            setUser(refreshedSession.user)
+
+            if (refreshedSession.user) {
+              const profileData = await fetchProfile(refreshedSession.user.id)
+              setProfile(profileData)
+            }
+          } else {
+            // Session is valid
+            setSession(initialSession)
+            setUser(initialSession.user ?? null)
+
+            if (initialSession?.user) {
+              const profileData = await fetchProfile(initialSession.user.id)
+              setProfile(profileData)
+            }
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
+        // On any error, clear auth state to prevent stuck loading
+        setSession(null)
+        setUser(null)
+        setProfile(null)
       } finally {
         setLoading(false)
       }
@@ -76,15 +127,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        setSession(newSession)
-        setUser(newSession?.user ?? null)
+        // Handle token refresh and sign out events
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          setSession(newSession)
+          setUser(newSession?.user ?? null)
 
-        if (newSession?.user) {
-          // Fetch profile on auth change
-          const profileData = await fetchProfile(newSession.user.id)
-          setProfile(profileData)
-        } else {
+          if (newSession?.user) {
+            const profileData = await fetchProfile(newSession.user.id)
+            setProfile(profileData)
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setUser(null)
           setProfile(null)
+        } else {
+          // For other events, just update state
+          setSession(newSession)
+          setUser(newSession?.user ?? null)
+
+          if (newSession?.user) {
+            const profileData = await fetchProfile(newSession.user.id)
+            setProfile(profileData)
+          } else {
+            setProfile(null)
+          }
         }
       }
     )

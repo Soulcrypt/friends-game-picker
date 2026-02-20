@@ -1,7 +1,8 @@
 'use client'
 
-import { forwardRef, useState } from 'react'
+import { forwardRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import {
   HiSearch,
   HiPlus,
@@ -21,13 +22,21 @@ import {
   HiSortAscending,
   HiX,
   HiMenu,
+  HiClock,
+  HiUserGroup,
+  HiCollection,
 } from 'react-icons/hi'
+import { HiTrophy } from 'react-icons/hi2'
 import { FaGamepad, FaSteam } from 'react-icons/fa'
 import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
 import { FaXbox } from 'react-icons/fa'
 import { TbWorldWww } from 'react-icons/tb'
-import type { ViewMode, CardSize, FilterPreset, GameSource } from '@/lib/types'
+import type { ViewMode, CardSize, FilterPreset, GameSource, Poll, Game, GameResult } from '@/lib/types'
+import { getActivePoll, calculateResults, getTotalVotersForPoll } from '@/lib/votes'
 import MobileMenu from './MobileMenu'
+import PollManager from './PollManager'
+import RankedVoting from './RankedVoting'
+import PollResults from './PollResults'
 
 interface FilterBarProps {
   searchTerm: string
@@ -58,6 +67,21 @@ interface FilterBarProps {
   activeSourceFilters?: GameSource[]
   onToggleSourceFilter?: (source: GameSource) => void
   availableSources?: GameSource[]
+  // Poll integration
+  games: Game[]
+  onPollStateChange?: () => void
+}
+
+// Helper to get countdown urgency class
+function getCountdownClass(timeRemaining: string | null): string {
+  if (!timeRemaining) return ''
+  const match = timeRemaining.match(/^(\d+)([msh])/)
+  if (!match) return ''
+  const value = parseInt(match[1])
+  const unit = match[2]
+  if (unit === 's' || (unit === 'm' && value < 5)) return 'text-red-400'
+  if (unit === 'm' && value < 30) return 'text-amber-400'
+  return ''
 }
 
 // Category definitions for organizing filters
@@ -111,9 +135,133 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
   activeSourceFilters = [],
   onToggleSourceFilter,
   availableSources = [],
+  games,
+  onPollStateChange,
 }, ref) {
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Poll state
+  const [poll, setPoll] = useState<Poll | null>(null)
+  const [pollLoading, setPollLoading] = useState(true)
+  const [pollExpanded, setPollExpanded] = useState(false)
+  const [topResults, setTopResults] = useState<GameResult[]>([])
+  const [totalVoters, setTotalVoters] = useState(0)
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null)
+  const [showPollResults, setShowPollResults] = useState(false)
+
+  // Load active poll
+  useEffect(() => {
+    loadPoll()
+  }, [])
+
+  // Update countdown timer
+  useEffect(() => {
+    if (!poll?.ends_at) {
+      setTimeRemaining(null)
+      return
+    }
+
+    const updateTimer = () => {
+      const now = new Date()
+      const end = new Date(poll.ends_at!)
+      const diff = end.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setTimeRemaining('Ended')
+        loadPoll()
+        return
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+      if (hours > 24) {
+        const days = Math.floor(hours / 24)
+        setTimeRemaining(`${days}d ${hours % 24}h`)
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m`)
+      } else if (minutes > 0) {
+        setTimeRemaining(`${minutes}m ${seconds}s`)
+      } else {
+        setTimeRemaining(`${seconds}s`)
+      }
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [poll?.ends_at])
+
+  // Load top results preview
+  useEffect(() => {
+    if (!poll || poll.status !== 'active') return
+
+    const loadResults = async () => {
+      try {
+        const [results, voters] = await Promise.all([
+          calculateResults(poll.id),
+          getTotalVotersForPoll(poll.id),
+        ])
+        setTopResults(results.slice(0, 3))
+        setTotalVoters(voters)
+      } catch (error) {
+        console.error('Error loading results preview:', error)
+      }
+    }
+
+    loadResults()
+    const interval = setInterval(loadResults, 30000)
+    return () => clearInterval(interval)
+  }, [poll?.id, poll?.status])
+
+  const loadPoll = async () => {
+    setPollLoading(true)
+    try {
+      const activePoll = await getActivePoll()
+      setPoll(activePoll)
+      if (activePoll?.status === 'ended') {
+        setShowPollResults(true)
+      }
+    } catch (error) {
+      console.error('Error loading poll:', error)
+    } finally {
+      setPollLoading(false)
+    }
+  }
+
+  const handlePollCreated = (newPoll: Poll) => {
+    setPoll(newPoll)
+    setPollExpanded(true)
+    setShowPollResults(false)
+    onPollStateChange?.()
+  }
+
+  const handlePollEnded = () => {
+    if (poll) {
+      setPoll({ ...poll, status: 'ended' })
+    }
+    setShowPollResults(true)
+    onPollStateChange?.()
+  }
+
+  const handleVoteSubmitted = () => {
+    if (poll) {
+      calculateResults(poll.id).then(results => setTopResults(results.slice(0, 3)))
+      getTotalVotersForPoll(poll.id).then(setTotalVoters)
+    }
+    onPollStateChange?.()
+  }
+
+  const handleCreateNewPoll = () => {
+    setPoll(null)
+    setShowPollResults(false)
+    setTopResults([])
+    setTotalVoters(0)
+  }
+
+  const countdownClass = getCountdownClass(timeRemaining)
 
   // Organize filters into categories (deduplicated)
   const playerModeFilters = PLAYER_MODE_FILTERS.filter(f => availableFilters.includes(f))
@@ -182,13 +330,67 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
         <div className="glass-strong rounded-2xl p-4 sm:p-5 space-y-4">
           {/* Header row */}
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight leading-none truncate">
-                <span className="text-gradient">What are we playing?</span>
-              </h1>
-              <p className="text-xs text-white/40 mt-1.5 uppercase tracking-wide font-medium">
-                {gameCount} {gameCount === 1 ? 'game' : 'games'} in the pool
-              </p>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Poll indicator button */}
+              {!pollLoading && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setPollExpanded(!pollExpanded)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all shrink-0 ${
+                    poll
+                      ? 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 hover:border-purple-500/50'
+                      : 'glass glass-hover'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    poll
+                      ? 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/20'
+                      : 'bg-white/5'
+                  }`}>
+                    <HiTrophy className={`w-4 h-4 ${poll ? 'text-white' : 'text-white/30'}`} />
+                  </div>
+                  {poll ? (
+                    <div className="hidden sm:flex items-center gap-2 text-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-white/70 font-medium max-w-[100px] truncate">{poll.title}</span>
+                      <span className="text-white/40">·</span>
+                      <span className="text-white/50 flex items-center gap-1">
+                        <HiUserGroup className="w-3 h-3" />
+                        {totalVoters}
+                      </span>
+                      {timeRemaining && (
+                        <>
+                          <span className="text-white/40">·</span>
+                          <span className={`flex items-center gap-1 ${countdownClass || 'text-amber-400'}`}>
+                            <HiClock className="w-3 h-3" />
+                            {timeRemaining}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="hidden sm:block text-xs text-white/40">Start Poll</span>
+                  )}
+                  <motion.div
+                    animate={{ rotate: pollExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-white/40"
+                  >
+                    <HiChevronDown className="w-4 h-4" />
+                  </motion.div>
+                </motion.button>
+              )}
+
+              {/* Title and count */}
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold tracking-tight leading-none truncate">
+                  <span className="text-gradient">What are we playing?</span>
+                </h1>
+                <p className="text-xs text-white/40 mt-1 uppercase tracking-wide font-medium">
+                  {gameCount} {gameCount === 1 ? 'game' : 'games'}
+                </p>
+              </div>
             </div>
 
             {/* Action buttons */}
@@ -266,6 +468,118 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
               </motion.button>
             </div>
           </div>
+
+          {/* Expandable Poll Panel */}
+          <AnimatePresence initial={false}>
+            {pollExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="pt-2 pb-1">
+                  <div className="divider-gradient mb-4" />
+
+                  {/* Poll Results View */}
+                  {(poll?.status === 'ended' || showPollResults) && poll ? (
+                    <PollResults
+                      poll={poll}
+                      onCreateNewPoll={handleCreateNewPoll}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Poll Manager (create/end) */}
+                      <PollManager
+                        activePoll={poll}
+                        onPollCreated={handlePollCreated}
+                        onPollEnded={handlePollEnded}
+                      />
+
+                      {/* Voting UI */}
+                      {poll && poll.status === 'active' && (
+                        <div>
+                          <div className="divider-gradient mb-4" />
+                          <h4 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                            Cast Your Vote
+                          </h4>
+                          <RankedVoting
+                            poll={poll}
+                            games={games}
+                            onVoteSubmitted={handleVoteSubmitted}
+                          />
+                        </div>
+                      )}
+
+                      {/* Live Results Preview */}
+                      {poll && topResults.length > 0 && (
+                        <div>
+                          <div className="divider-gradient mb-4" />
+                          <h4 className="text-sm font-medium text-white/70 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Current Standings
+                          </h4>
+                          <div className="space-y-2">
+                            {topResults.map((result, i) => (
+                              <motion.div
+                                key={result.game_id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.08 }}
+                                whileHover={{ scale: 1.01, x: 4 }}
+                                className={`flex items-center gap-3 glass rounded-lg p-2 transition-all cursor-default ${
+                                  i === 0 ? 'ring-1 ring-yellow-500/20' : ''
+                                }`}
+                              >
+                                <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold shadow-lg ${
+                                  i === 0
+                                    ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-yellow-500/30'
+                                    : i === 1
+                                    ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800'
+                                    : 'bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-amber-600/20'
+                                }`}>
+                                  {i + 1}
+                                </span>
+                                {result.game?.cover && (
+                                  <img
+                                    src={result.game.cover}
+                                    alt={result.game.title}
+                                    className="w-14 h-8 rounded-lg object-cover"
+                                  />
+                                )}
+                                <span className="flex-1 text-sm text-white truncate font-medium">
+                                  {result.game?.title}
+                                </span>
+                                <span className={`text-sm font-bold ${
+                                  i === 0 ? 'text-yellow-400' : 'text-white/70'
+                                }`}>
+                                  {result.total_points} pts
+                                </span>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* View Poll History Link */}
+                      <div className="pt-2">
+                        <div className="divider-gradient mb-4" />
+                        <Link
+                          href="/polls"
+                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl glass glass-hover text-sm text-white/50 hover:text-white transition-all hover:scale-[1.01]"
+                        >
+                          <HiCollection className="w-4 h-4" />
+                          View Poll History
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         {/* Search bar */}
         <div className="relative">

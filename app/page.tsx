@@ -18,6 +18,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import GameCard from './components/GameCard'
+import MobileGameCard from './components/MobileGameCard'
 import SortableGameCard from './components/SortableGameCard'
 import GameListItem from './components/GameListItem'
 import FilterBar from './components/FilterBar'
@@ -28,7 +29,6 @@ import TrailerModal from './components/TrailerModal'
 import RecentlyAddedRow from './components/RecentlyAddedRow'
 import PickerModal from './components/PickerModal'
 import FloatingActionButton from './components/FloatingActionButton'
-import PollBanner from './components/PollBanner'
 import LoginButton from './components/LoginButton'
 import { getGames, voteForGame, getSessionId, getUserVotes, removeGame, restoreGame, updateGameCover, getActivePoll, getUserRankedVotes, submitRankedVotes, calculateResults } from '@/lib/votes'
 import { fetchSteamCoverByTitle } from '@/lib/steam'
@@ -67,6 +67,16 @@ export default function Home() {
   const [userPollRankings, setUserPollRankings] = useState<{ [rank: number]: string }>({}) // rank -> gameId
   const [pollResults, setPollResults] = useState<GameResult[]>([])
   const { profile } = useAuth()
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Load filter presets from localStorage
   useEffect(() => {
@@ -250,8 +260,18 @@ export default function Home() {
   }, [filteredGames, groupBy])
 
   useEffect(() => {
+    // Set a loading timeout to prevent infinite loading states
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Loading timeout reached, forcing load complete')
+        setLoading(false)
+      }
+    }, 10000) // 10 second timeout
+
     loadGames()
     loadUserVotes()
+
+    return () => clearTimeout(loadingTimeout)
   }, [])
 
   // Load active poll and user's rankings
@@ -878,7 +898,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-4 sm:p-8 max-w-7xl mx-auto">
+      <main className="min-h-screen p-3 sm:p-6 lg:p-8 max-w-[1800px] mx-auto">
         <div className="pt-4">
           {/* Skeleton header */}
           <div className="glass-strong rounded-2xl p-5 mb-6">
@@ -896,7 +916,7 @@ export default function Home() {
           </div>
 
           {/* Skeleton cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
             {[...Array(8)].map((_, i) => (
               <motion.div
                 key={i}
@@ -922,15 +942,12 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-8 max-w-7xl mx-auto">
+    <main className="min-h-screen p-3 sm:p-6 lg:p-8 max-w-[1800px] mx-auto">
       <div className="pt-4">
         {/* Login Button - top right */}
         <div className="flex justify-end mb-4">
           <LoginButton />
         </div>
-
-        {/* Poll Banner */}
-        <PollBanner games={games} onPollStateChange={handlePollStateChange} />
 
         <FilterBar
           ref={searchInputRef}
@@ -961,6 +978,8 @@ export default function Home() {
           activeSourceFilters={activeSourceFilters}
           onToggleSourceFilter={toggleSourceFilter}
           availableSources={availableSources}
+          games={games}
+          onPollStateChange={handlePollStateChange}
         />
 
         {/* Recently Added Row */}
@@ -1057,35 +1076,56 @@ export default function Home() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className={`grid gap-3 sm:gap-4 lg:gap-5 ${
+                    className={`grid gap-4 sm:gap-5 lg:gap-6 ${
                       cardSize === 'small'
                         ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                         : cardSize === 'large'
-                        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
-                        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                        ? 'grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3'
+                        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
                     }`}
                   >
                     <AnimatePresence mode="popLayout">
                       {groupGames.map((game, index) => (
-                        <GameCard
-                          key={game.id}
-                          game={game}
-                          onVote={() => handleVote(game.id)}
-                          onRemove={() => handleRemove(game.id, game.title)}
-                          onPlayTrailer={() => setTrailerGame(game)}
-                          onRefresh={handleRefresh}
-                          onPin={() => togglePin(game.id)}
-                          onPollRankSelect={handlePollRankSelect}
-                          rank={index + 1}
-                          index={index}
-                          hasVoted={votedGames.includes(game.id)}
-                          isPinned={pinnedGames.includes(game.id)}
-                          size={cardSize}
-                          isPollActive={!!activePoll}
-                          pollRank={getGamePollRank(game.id)}
-                          pollVoteCount={getGamePollPoints(game.id)}
-                          userPollRanks={userPollRankings}
-                        />
+                        isMobile ? (
+                          <MobileGameCard
+                            key={game.id}
+                            game={game}
+                            onVote={() => handleVote(game.id)}
+                            onRemove={() => handleRemove(game.id, game.title)}
+                            onPlayTrailer={() => setTrailerGame(game)}
+                            onCardClick={() => {}}
+                            onPin={() => togglePin(game.id)}
+                            onPollRankSelect={handlePollRankSelect}
+                            rank={index + 1}
+                            index={index}
+                            hasVoted={votedGames.includes(game.id)}
+                            isPinned={pinnedGames.includes(game.id)}
+                            isPollActive={!!activePoll}
+                            pollRank={getGamePollRank(game.id)}
+                            pollVoteCount={getGamePollPoints(game.id)}
+                            userPollRanks={userPollRankings}
+                          />
+                        ) : (
+                          <GameCard
+                            key={game.id}
+                            game={game}
+                            onVote={() => handleVote(game.id)}
+                            onRemove={() => handleRemove(game.id, game.title)}
+                            onPlayTrailer={() => setTrailerGame(game)}
+                            onRefresh={handleRefresh}
+                            onPin={() => togglePin(game.id)}
+                            onPollRankSelect={handlePollRankSelect}
+                            rank={index + 1}
+                            index={index}
+                            hasVoted={votedGames.includes(game.id)}
+                            isPinned={pinnedGames.includes(game.id)}
+                            size={cardSize}
+                            isPollActive={!!activePoll}
+                            pollRank={getGamePollRank(game.id)}
+                            pollVoteCount={getGamePollPoints(game.id)}
+                            userPollRanks={userPollRankings}
+                          />
+                        )
                       ))}
                     </AnimatePresence>
                   </motion.div>
@@ -1103,37 +1143,60 @@ export default function Home() {
               items={filteredGames.map(g => g.id)}
               strategy={rectSortingStrategy}
             >
-              <div className={`grid gap-3 sm:gap-4 lg:gap-5 ${
-                cardSize === 'small'
+              <div className={`grid gap-4 sm:gap-5 lg:gap-6 ${
+                isMobile
+                  ? 'grid-cols-1'
+                  : cardSize === 'small'
                   ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                   : cardSize === 'large'
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
-                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                  ? 'grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
               }`}>
                 <AnimatePresence mode="popLayout">
                   {filteredGames.map((game, index) => (
-                    <SortableGameCard
-                      key={game.id}
-                      game={game}
-                      onVote={() => handleVote(game.id)}
-                      onRemove={() => handleRemove(game.id, game.title)}
-                      onPlayTrailer={() => setTrailerGame(game)}
-                      onRefresh={handleRefresh}
-                      onPin={() => togglePin(game.id)}
-                      onCompare={() => toggleCompare(game.id)}
-                      onPollRankSelect={handlePollRankSelect}
-                      rank={index + 1}
-                      index={index}
-                      hasVoted={votedGames.includes(game.id)}
-                      isPinned={pinnedGames.includes(game.id)}
-                      isComparing={compareGames.includes(game.id)}
-                      size={cardSize}
-                      isDraggable={sortBy === 'votes' && groupBy === 'none'}
-                      isPollActive={!!activePoll}
-                      pollRank={getGamePollRank(game.id)}
-                      pollVoteCount={getGamePollPoints(game.id)}
-                      userPollRanks={userPollRankings}
-                    />
+                    isMobile ? (
+                      <MobileGameCard
+                        key={game.id}
+                        game={game}
+                        onVote={() => handleVote(game.id)}
+                        onRemove={() => handleRemove(game.id, game.title)}
+                        onPlayTrailer={() => setTrailerGame(game)}
+                        onCardClick={() => {}}
+                        onPin={() => togglePin(game.id)}
+                        onPollRankSelect={handlePollRankSelect}
+                        rank={index + 1}
+                        index={index}
+                        hasVoted={votedGames.includes(game.id)}
+                        isPinned={pinnedGames.includes(game.id)}
+                        isPollActive={!!activePoll}
+                        pollRank={getGamePollRank(game.id)}
+                        pollVoteCount={getGamePollPoints(game.id)}
+                        userPollRanks={userPollRankings}
+                      />
+                    ) : (
+                      <SortableGameCard
+                        key={game.id}
+                        game={game}
+                        onVote={() => handleVote(game.id)}
+                        onRemove={() => handleRemove(game.id, game.title)}
+                        onPlayTrailer={() => setTrailerGame(game)}
+                        onRefresh={handleRefresh}
+                        onPin={() => togglePin(game.id)}
+                        onCompare={() => toggleCompare(game.id)}
+                        onPollRankSelect={handlePollRankSelect}
+                        rank={index + 1}
+                        index={index}
+                        hasVoted={votedGames.includes(game.id)}
+                        isPinned={pinnedGames.includes(game.id)}
+                        isComparing={compareGames.includes(game.id)}
+                        size={cardSize}
+                        isDraggable={sortBy === 'votes' && groupBy === 'none'}
+                        isPollActive={!!activePoll}
+                        pollRank={getGamePollRank(game.id)}
+                        pollVoteCount={getGamePollPoints(game.id)}
+                        userPollRanks={userPollRankings}
+                      />
+                    )
                   ))}
                 </AnimatePresence>
               </div>
