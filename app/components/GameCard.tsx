@@ -333,7 +333,7 @@ export default function GameCard({
 
         {/* ── BACK FACE ── */}
         <div
-          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0 }}
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', position: 'absolute', inset: 0, overflow: 'hidden' }}
           className="flex flex-col"
         >
           {/* Back cover (blurred) */}
@@ -367,39 +367,40 @@ export default function GameCard({
             </div>
           </div>
 
-          {/* Back content */}
-          <div className="flex flex-col flex-1 p-4 gap-3" style={{ background: 'rgb(var(--color-surface))' }}>
-            {/* Description */}
-            {game.short_description && (
-              <p className="text-xs leading-relaxed line-clamp-4" style={{ color: 'hsl(var(--muted-foreground))', fontFamily: "'Space Grotesk', sans-serif" }}>
-                {game.short_description}
-              </p>
-            )}
+          {/* Back content — scrollable info area + pinned buttons */}
+          <div className="flex flex-col flex-1 min-h-0" style={{ background: 'rgb(var(--color-surface))' }}>
+            {/* Scrollable info */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin p-4 pb-2 flex flex-col gap-3">
+              {/* Description */}
+              {game.short_description && (
+                <p className="text-xs leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {game.short_description}
+                </p>
+              )}
 
-            {/* Meta info row */}
-            <div className="flex flex-wrap gap-2 text-xs font-mono" style={{ color: 'rgba(150,165,185,0.7)' }}>
-              {metaScore != null && (
-                <span style={{ color: metaColor ?? undefined }}>
-                  ★ {metaScore}
-                </span>
-              )}
-              {game.release_date && (
-                <span>{new Date(game.release_date).getFullYear()}</span>
-              )}
-              {game.developers?.[0] && (
-                <span className="truncate">{game.developers[0]}</span>
+              {/* Meta info row */}
+              <div className="flex flex-wrap gap-2 text-xs font-mono" style={{ color: 'rgba(150,165,185,0.7)' }}>
+                {metaScore != null && (
+                  <span style={{ color: metaColor ?? undefined }}>★ {metaScore}</span>
+                )}
+                {game.release_date && (
+                  <span>{new Date(game.release_date).getFullYear()}</span>
+                )}
+                {game.developers?.[0] && (
+                  <span className="truncate">{game.developers[0]}</span>
+                )}
+              </div>
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {tags.map((tag) => <span key={tag} className="tag-pill text-[9px]">{tag}</span>)}
+                </div>
               )}
             </div>
 
-            {/* Tags */}
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {tags.map((tag) => <span key={tag} className="tag-pill text-[9px]">{tag}</span>)}
-              </div>
-            )}
-
-            <div className="mt-auto flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-              {/* Trailer button */}
+            {/* Pinned action buttons — never scroll away */}
+            <div className="flex flex-col gap-2 p-4 pt-2" onClick={(e) => e.stopPropagation()}>
               {hasTrailer && onPlayTrailer && (
                 <button
                   onClick={() => onPlayTrailer(game)}
@@ -416,7 +417,6 @@ export default function GameCard({
                   TRAILER
                 </button>
               )}
-              {/* Vote button on back */}
               <button
                 className={`btn-vote ${hasVoted ? 'voted' : ''} w-full py-2`}
                 onClick={onVote}
