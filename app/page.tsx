@@ -190,7 +190,7 @@ function HomeContent() {
   // Loading state
   if (loading) {
     return (
-      <main className="min-h-screen px-4 sm:px-6 lg:px-8 pb-12 max-w-[1240px] mx-auto relative z-10">
+      <main className="min-h-screen px-4 sm:px-6 lg:px-8 pb-12 max-w-[2000px] mx-auto relative z-10">
         <div className="pt-6 sm:pt-8">
           {/* Skeleton header */}
           <div className="bg-surface-raised border border-border rounded-2xl p-6 mb-8">
@@ -258,7 +258,7 @@ function HomeContent() {
     <main className="min-h-screen pb-12 relative z-10">
       {/* Sticky glass header */}
       <header className="glass-header sticky top-0 z-50">
-        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           {/* Left: icon + title + count */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex-shrink-0">
@@ -325,7 +325,7 @@ function HomeContent() {
         </div>
       </header>
 
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+      <div className="max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
         <FilterBar
           ref={searchInputRef}
           searchTerm={searchTerm}
