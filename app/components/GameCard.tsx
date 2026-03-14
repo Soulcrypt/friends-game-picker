@@ -314,7 +314,6 @@ export default function GameCard({
               <button
                 className={`btn-vote ${hasVoted ? 'voted' : ''} w-full py-2`}
                 onClick={onVote}
-                disabled={hasVoted}
               >
                 {!hasVoted && (
                   <span
@@ -420,7 +419,6 @@ export default function GameCard({
               <button
                 className={`btn-vote ${hasVoted ? 'voted' : ''} w-full py-2`}
                 onClick={onVote}
-                disabled={hasVoted}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <HiLightningBolt className="w-4 h-4" />

@@ -1355,16 +1355,4 @@ body::after {
   animation: spin 2s linear infinite;
 }
 
-/* ========================================
-   GRID VIGNETTE — dim surrounding cards on hover
-   ======================================== */
-
-.games-grid > * {
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-.games-grid:has(> *:hover) > *:not(:hover) {
-  opacity: 0.4;
-  transform: scale(0.985);
-}
 
