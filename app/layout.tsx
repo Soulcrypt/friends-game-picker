@@ -1,10 +1,29 @@
 import type { Metadata, Viewport } from 'next'
+import { Rajdhani, Space_Grotesk, Space_Mono } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
 
-// System font stack CSS class (no network required)
-const fontClass = 'font-sans'
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-rajdhani',
+  display: 'swap',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-space-mono',
+  display: 'swap',
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -12,7 +31,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#08080C',
+  themeColor: '#0D1117',
 }
 
 export const metadata: Metadata = {
@@ -27,12 +46,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${fontClass} min-h-screen relative`} style={{ background: '#08080C' }}>
-        {/* Animated gradient orbs */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-purple-600/[0.07] blur-[120px] animate-float" />
-          <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-600/[0.05] blur-[120px] animate-float-delayed" />
-          <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-cyan-600/[0.04] blur-[120px] animate-float" />
+      <body className={`${rajdhani.variable} ${spaceGrotesk.variable} ${spaceMono.variable} font-body min-h-screen relative`}>
+        {/* Ambient blobs — subtle background atmosphere */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div
+            className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full blur-[120px] opacity-[0.06]"
+            style={{ background: 'hsl(var(--primary))' }}
+          />
+          <div
+            className="absolute top-2/3 -right-40 w-[600px] h-[600px] rounded-full blur-[100px] opacity-[0.04]"
+            style={{ background: 'hsl(var(--neon-cyan))' }}
+          />
         </div>
 
         {/* Content */}
@@ -47,22 +71,24 @@ export default function RootLayout({
           toastOptions={{
             duration: 3000,
             style: {
-              background: 'rgba(255, 255, 255, 0.07)',
+              background: 'rgba(23,30,42,0.95)',
               backdropFilter: 'blur(20px)',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
+              color: 'rgb(230,235,245)',
+              border: '1px solid rgba(191,95,255,0.2)',
+              borderRadius: '4px',
               fontSize: '14px',
+              fontWeight: '500',
+              boxShadow: '0 0 20px rgba(191,95,255,0.1), 0 8px 32px rgba(0,0,0,0.4)',
             },
             success: {
               iconTheme: {
-                primary: '#8B5CF6',
-                secondary: '#fff',
+                primary: '#27FF7A',
+                secondary: '#000',
               },
             },
             error: {
               iconTheme: {
-                primary: '#EF4444',
+                primary: '#FF453A',
                 secondary: '#fff',
               },
             },

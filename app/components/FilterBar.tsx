@@ -3,6 +3,7 @@
 import { forwardRef, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { Button } from '@/app/components/ui/button'
 import {
   HiSearch,
   HiPlus,
@@ -18,8 +19,6 @@ import {
   HiChevronDown,
   HiCurrencyDollar,
   HiTag,
-  HiSortDescending,
-  HiSortAscending,
   HiX,
   HiMenu,
   HiClock,
@@ -140,6 +139,15 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 }, ref) {
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  // Scroll-aware blur — strengthen glass panel as user scrolls past hero
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 72)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Poll state
   const [poll, setPoll] = useState<Poll | null>(null)
@@ -276,24 +284,29 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
   const visibleGenres = genreFilters.slice(0, 8)
   const hiddenGenres = genreFilters.slice(8)
 
-  const FilterButton = ({ filter, small = false }: { filter: string; small?: boolean }) => (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onToggleFilter(filter)}
-      className={`rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
-        small ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs'
-      } ${
-        activeFilters.includes(filter)
-          ? 'btn-primary'
-          : 'btn-secondary'
-      }`}
-    >
-      {FILTER_ICONS[filter]}
-      {filter}
-    </motion.button>
-  )
+  const FilterButton = ({ filter, small = false, hashtag = false }: { filter: string; small?: boolean; hashtag?: boolean }) => {
+    const isActive = activeFilters.includes(filter)
+    const label = hashtag ? `#${filter.toLowerCase()}` : filter
+    return (
+      <motion.button
+        whileHover={{ scale: 1.02, y: -1 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onToggleFilter(filter)}
+        className={`rounded-xl font-medium whitespace-nowrap flex items-center gap-1.5 border transition-all duration-150 ${
+          small ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm'
+        } ${hashtag ? 'font-mono' : ''} ${
+          isActive
+            ? 'bg-primary/15 border-primary/35 text-primary shadow-[0_0_14px_rgba(139,92,246,0.22)]'
+            : 'bg-white/[0.04] border-white/[0.07] hover:border-white/[0.12] hover:bg-white/[0.07] text-text-secondary hover:text-text-primary'
+        }`}
+      >
+        {!hashtag && <span className={isActive ? 'text-primary' : 'text-text-tertiary'}>{FILTER_ICONS[filter]}</span>}
+        {label}
+      </motion.button>
+    )
+  }
 
+  // The FilterBar is the sticky glass panel at the top
   return (
     <>
       {/* Mobile Menu */}
@@ -326,11 +339,33 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
         availableSources={availableSources}
       />
 
-      <div className="sticky top-0 z-20 pb-4">
-        <div className="glass-strong rounded-2xl p-4 sm:p-5 space-y-4">
-          {/* Header row */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+      <div className="sticky top-0 z-20 pb-5">
+        <div
+        className="glass-strong p-3 sm:p-4 space-y-3 transition-all duration-300 relative overflow-hidden"
+        style={{
+          borderRadius: '2px',
+          ...(scrolled ? {
+            background: 'rgba(10, 15, 26, 0.96)',
+            backdropFilter: 'blur(40px) saturate(220%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(220%)',
+            boxShadow: '0 1px 0 rgba(255,255,255,0.07), 0 8px 40px rgba(0,0,0,0.55)',
+          } : {}),
+        }}
+      >
+          {/* Top accent line — brightens on scroll */}
+          <div
+            className="absolute top-0 left-6 right-6 h-px pointer-events-none"
+            style={{
+              background: scrolled
+                ? 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.55) 20%, rgba(139,92,246,0.85) 50%, rgba(139,92,246,0.55) 80%, transparent 100%)'
+                : 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 20%, rgba(255,255,255,0.11) 50%, rgba(255,255,255,0.07) 80%, transparent 100%)',
+              transition: 'background 0.4s ease',
+            }}
+          />
+
+          {/* Control row — poll + count + actions */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               {/* Poll indicator button */}
               {!pollLoading && (
                 <motion.button
@@ -382,54 +417,81 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                 </motion.button>
               )}
 
-              {/* Title and count */}
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-semibold tracking-tight leading-none truncate">
-                  <span className="text-gradient">What are we playing?</span>
-                </h1>
-                <p className="text-xs text-white/40 mt-1 uppercase tracking-wide font-medium">
-                  {gameCount} {gameCount === 1 ? 'game' : 'games'}
-                </p>
+              {/* Game count pill — compact context inside the glass panel */}
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-text-tertiary" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 inline-block" />
+                {gameCount} {gameCount === 1 ? 'game' : 'games'}
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Sort tabs — A-Z | VOTES, prominent at top right like Lovable */}
+            <div className="hidden sm:flex items-center gap-1 mr-1">
+              <button
+                onClick={() => onSortChange('votes')}
+                className={`px-3 py-1.5 text-[12px] font-mono font-bold rounded-lg transition-all duration-150 ${
+                  sortBy === 'votes'
+                    ? 'text-primary bg-primary/10 border border-primary/30'
+                    : 'text-text-tertiary border border-transparent hover:border-white/[0.08] hover:text-text-secondary hover:bg-white/[0.04]'
+                }`}
+              >
+                VOTES
+              </button>
+              <button
+                onClick={() => onSortChange('title')}
+                className={`px-3 py-1.5 text-[12px] font-mono font-bold rounded-lg transition-all duration-150 ${
+                  sortBy === 'title'
+                    ? 'text-primary bg-primary/10 border border-primary/30'
+                    : 'text-text-tertiary border border-transparent hover:border-white/[0.08] hover:text-text-secondary hover:bg-white/[0.04]'
+                }`}
+              >
+                A-Z
+              </button>
+              <div className="w-px h-5 bg-white/[0.07] mx-1" />
+            </div>
+
+          {/* Action buttons */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {/* Secondary actions - hidden on mobile */}
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1">
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={onRefreshAll}
                   disabled={gameCount === 0 || isRefreshing}
-                  className="btn-secondary rounded-xl p-2.5 disabled:opacity-50"
+                  className="p-2 rounded-lg disabled:opacity-40 text-text-tertiary hover:text-text-secondary transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}
                   title="Refresh all games"
                   aria-label="Refresh all games"
                 >
-                  <HiRefresh className={`w-4 h-4 ${isRefreshing ? 'animate-spin-slow' : ''}`} aria-hidden="true" />
+                  <HiRefresh className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin-slow' : ''}`} aria-hidden="true" />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={onImport}
-                  className="btn-secondary rounded-xl p-2.5"
+                  className="p-2 rounded-lg text-text-tertiary hover:text-text-secondary transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}
                   title="Import games"
                   aria-label="Import games from file"
                 >
-                  <HiUpload className="w-4 h-4" aria-hidden="true" />
+                  <HiUpload className="w-3.5 h-3.5" aria-hidden="true" />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={onShare}
                   disabled={gameCount === 0}
-                  className="btn-secondary rounded-xl p-2.5 disabled:opacity-50"
+                  className="p-2 rounded-lg disabled:opacity-40 text-text-tertiary hover:text-text-secondary transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}
                   title="Share collection"
                   aria-label="Share game collection"
                 >
-                  <HiShare className="w-4 h-4" aria-hidden="true" />
+                  <HiShare className="w-3.5 h-3.5" aria-hidden="true" />
                 </motion.button>
               </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px h-5 bg-white/[0.07] mx-0.5" />
 
               {/* Pick For Us - hidden on mobile (available in menu) */}
               <motion.button
@@ -437,29 +499,32 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                 whileTap={{ scale: 0.98 }}
                 onClick={onPickForUs}
                 disabled={gameCount === 0}
-                className="hidden sm:flex btn-secondary rounded-xl px-4 py-2.5 text-sm items-center gap-2 disabled:opacity-50"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-medium text-text-secondary disabled:opacity-40 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}
               >
-                <HiSparkles className="w-4 h-4" />
-                <span>Pick For Us</span>
+                <HiSparkles className="w-3.5 h-3.5 text-primary/70" />
+                <span>Pick</span>
               </motion.button>
 
               {/* Add Game button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onAddGame}
-                className="btn-primary rounded-xl px-4 py-2.5 text-sm flex items-center gap-2 min-h-[44px]"
-              >
-                <HiPlus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Game</span>
-              </motion.button>
+              <Button asChild size="sm" className="rounded-xl px-3.5 text-[13px] font-semibold tracking-[-0.01em] h-9" style={{ boxShadow: '0 4px 16px rgba(139,92,246,0.35)' }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={onAddGame}
+                >
+                  <HiPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Game</span>
+                </motion.button>
+              </Button>
 
               {/* Mobile menu button */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => setMobileMenuOpen(true)}
-                className="sm:hidden btn-secondary rounded-xl p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="sm:hidden p-2 rounded-xl min-h-[44px] min-w-[44px] flex items-center justify-center text-text-tertiary"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}
                 title="Menu"
                 aria-label="Open menu"
                 aria-expanded={mobileMenuOpen}
@@ -582,8 +647,8 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
           </AnimatePresence>
 
         {/* Search bar */}
-        <div className="relative">
-          <HiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <div className="relative search-glow transition-all duration-200" style={{ borderRadius: '2px' }}>
+          <HiSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-white/35 transition-colors" />
           <input
             ref={ref}
             type="text"
@@ -591,34 +656,125 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck={false}
-            placeholder="Search games... (press / to focus)"
+            placeholder="Search games..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full glass-input rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-white/30 min-h-[44px]"
+            className="peer w-full text-[15px] placeholder-text-muted min-h-[48px] transition-all duration-200 focus:outline-none pl-11 pr-12 py-3"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '2px',
+              color: '#F5F7FA',
+            }}
             aria-label="Search games"
           />
           {searchTerm && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Clear search"
             >
-              <HiX className="w-4 h-4" />
+              <HiX className="w-5 h-5" />
             </button>
           )}
         </div>
 
+        {/* Active filter chips - shows all active filters with individual removal */}
+        {(activeFilters.length > 0 || activeSourceFilters.length > 0 || searchTerm) && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-xs text-text-tertiary uppercase tracking-wider font-semibold">Active:</span>
+
+            {/* Search term chip */}
+            {searchTerm && (
+              <motion.button
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSearchChange('')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-all duration-150 group shadow-sm"
+              >
+                <HiSearch className="w-3.5 h-3.5" />
+                <span className="max-w-[120px] truncate">"{searchTerm}"</span>
+                <HiX className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+            )}
+
+            {/* Source filter chips */}
+            {activeSourceFilters.map(source => {
+              const sourceInfo = SOURCE_FILTERS.find(s => s.source === source)
+              return (
+                <motion.button
+                  key={source}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onToggleSourceFilter?.(source)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-400/30 text-purple-300 text-sm font-medium hover:bg-purple-500/25 transition-all duration-150 group shadow-sm"
+                >
+                  {sourceInfo?.icon}
+                  {sourceInfo?.label || source}
+                  <HiX className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                </motion.button>
+              )
+            })}
+
+            {/* Regular filter chips */}
+            {activeFilters.map(filter => (
+              <motion.button
+                key={filter}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onToggleFilter(filter)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-150 group border shadow-sm ${
+                  PLAYER_MODE_FILTERS.includes(filter)
+                    ? 'bg-cyan-500/15 border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/25'
+                    : PRICE_FILTERS.includes(filter)
+                    ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300 hover:bg-emerald-500/25'
+                    : 'bg-amber-500/15 border-amber-400/30 text-amber-300 hover:bg-amber-500/25'
+                }`}
+              >
+                {FILTER_ICONS[filter]}
+                {filter}
+                <HiX className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+            ))}
+
+            {/* Clear all button */}
+            {(activeFilters.length > 0 || activeSourceFilters.length > 0 || searchTerm) && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  activeFilters.forEach(f => onToggleFilter(f))
+                  activeSourceFilters.forEach(s => onToggleSourceFilter?.(s))
+                  if (searchTerm) onSearchChange('')
+                }}
+                className="text-sm text-red-400/80 hover:text-red-400 px-3 py-1.5 rounded-xl border border-transparent hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-150 font-medium"
+              >
+                Clear all
+              </motion.button>
+            )}
+          </div>
+        )}
+
         {/* Filters section - hidden on mobile (available in menu) */}
-        <div className="hidden sm:block space-y-3">
+        <div className="hidden sm:block space-y-4">
           {/* Quick filters row - Player modes and price */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Price filters */}
             {priceFilters.map(filter => (
               <FilterButton key={filter} filter={filter} />
             ))}
 
             {priceFilters.length > 0 && playerModeFilters.length > 0 && (
-              <div className="w-px h-5 bg-white/10 mx-1" />
+              <div className="w-px h-6 bg-border mx-2" />
             )}
 
             {/* Player mode filters */}
@@ -630,47 +786,52 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             {onToggleSourceFilter && availableSources.length > 0 && (
               <>
                 {(priceFilters.length > 0 || playerModeFilters.length > 0) && (
-                  <div className="w-px h-5 bg-white/10 mx-2" />
+                  <div className="w-px h-6 bg-border mx-3" />
                 )}
-                <span className="text-xs text-white/40 uppercase tracking-wide">Store:</span>
-                {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label }) => (
-                  <motion.button
-                    key={source}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => onToggleSourceFilter(source)}
-                    className={`rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-1.5 px-3 py-2 text-xs ${
-                      activeSourceFilters.includes(source)
-                        ? 'btn-primary'
-                        : 'btn-secondary'
-                    }`}
-                  >
-                    {icon}
-                    {label}
-                  </motion.button>
-                ))}
+                <span className="text-xs text-text-tertiary uppercase tracking-wider font-semibold mr-1">Store:</span>
+                {SOURCE_FILTERS.filter(sf => availableSources.includes(sf.source)).map(({ source, icon, label }) => {
+                  const isActive = activeSourceFilters.includes(source)
+                  return (
+                    <motion.button
+                      key={source}
+                      whileHover={{ scale: 1.02, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => onToggleSourceFilter(source)}
+                      className={`rounded-xl font-medium whitespace-nowrap flex items-center gap-1.5 px-3.5 py-2 text-sm border transition-all duration-150 ${
+                        isActive
+                          ? 'bg-violet-500/15 border-violet-400/35 text-violet-300 shadow-[0_0_14px_rgba(139,92,246,0.18)]'
+                          : 'bg-white/[0.04] border-white/[0.07] hover:border-white/[0.12] hover:bg-white/[0.07] text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      <span className={isActive ? 'text-violet-400' : 'text-text-tertiary'}>{icon}</span>
+                      {label}
+                    </motion.button>
+                  )
+                })}
               </>
             )}
           </div>
 
           {/* Genre filters */}
           {genreFilters.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-white/30 uppercase tracking-wider mr-1">
-                <HiTag className="w-3 h-3 inline mr-1" />
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-xs text-text-tertiary uppercase tracking-wider font-semibold flex items-center gap-1.5 mr-1">
+                <HiTag className="w-3.5 h-3.5" />
                 Genres
               </span>
               {visibleGenres.map(filter => (
-                <FilterButton key={filter} filter={filter} small />
+                <FilterButton key={filter} filter={filter} small hashtag />
               ))}
               {hiddenGenres.length > 0 && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className="px-2.5 py-1 rounded-full text-xs font-medium glass text-white/40 hover:text-white/70 flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-xl text-sm font-medium bg-surface-raised border border-border hover:border-border-hover text-text-tertiary hover:text-text-secondary flex items-center gap-1.5 transition-all duration-150"
                 >
                   +{hiddenGenres.length} more
-                  <HiChevronDown className={`w-3 h-3 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`} />
-                </button>
+                  <HiChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMoreFilters ? 'rotate-180' : ''}`} />
+                </motion.button>
               )}
             </div>
           )}
@@ -682,10 +843,10 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="flex flex-wrap items-center gap-2 pl-16"
+                className="flex flex-wrap items-center gap-2.5 pl-20"
               >
                 {hiddenGenres.map(filter => (
-                  <FilterButton key={filter} filter={filter} small />
+                  <FilterButton key={filter} filter={filter} small hashtag />
                 ))}
               </motion.div>
             )}
@@ -693,53 +854,62 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
 
           {/* Active filters count & clear */}
           {activeFilters.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/40">
+            <div className="flex items-center gap-3 pt-2">
+              <span className="text-sm text-text-tertiary">
                 {activeFilters.length} filter{activeFilters.length !== 1 ? 's' : ''} active
               </span>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => activeFilters.forEach(f => onToggleFilter(f))}
-                className="text-xs text-purple-400 hover:text-purple-300"
+                className="text-sm text-primary/80 hover:text-primary font-medium transition-colors"
               >
                 Clear all
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
 
         {/* Mobile active filters indicator */}
         {activeFilters.length > 0 && (
-          <div className="sm:hidden flex items-center justify-between">
-            <span className="text-xs text-white/40">
+          <div className="sm:hidden flex items-center justify-between py-2">
+            <span className="text-sm text-text-tertiary">
               {activeFilters.length} filter{activeFilters.length !== 1 ? 's' : ''} active
             </span>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => activeFilters.forEach(f => onToggleFilter(f))}
-              className="text-xs text-purple-400 hover:text-purple-300"
+              className="text-sm text-primary/80 hover:text-primary font-medium transition-colors"
             >
               Clear all
-            </button>
+            </motion.button>
           </div>
         )}
 
-        {/* Toolbar row - hidden on mobile (available in menu) */}
-        <div className="hidden sm:flex items-center justify-between gap-3 pt-2 border-t border-white/[0.04]">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* Toolbar row - hidden on mobile */}
+        <div className="hidden sm:flex items-center justify-between gap-4 pt-4 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {/* View mode */}
-            <div className="flex items-center glass rounded-lg overflow-hidden">
+            <div className="flex items-center rounded-xl border border-white/[0.07] overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <button
                 onClick={() => onViewModeChange('grid')}
-                className={`p-2 transition-all ${
-                  viewMode === 'grid' ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
+                className={`p-2.5 transition-all duration-150 ${
+                  viewMode === 'grid'
+                    ? 'text-primary bg-primary/12'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-white/[0.05]'
                 }`}
                 title="Grid view"
               >
                 <HiViewGrid className="w-4 h-4" />
               </button>
+              <div className="w-px h-5 bg-white/[0.07]" />
               <button
                 onClick={() => onViewModeChange('list')}
-                className={`p-2 transition-all ${
-                  viewMode === 'list' ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
+                className={`p-2.5 transition-all duration-150 ${
+                  viewMode === 'list'
+                    ? 'text-primary bg-primary/12'
+                    : 'text-text-tertiary hover:text-text-secondary hover:bg-white/[0.05]'
                 }`}
                 title="List view"
               >
@@ -747,33 +917,17 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
               </button>
             </div>
 
-            {/* Card size (grid only) */}
-            {viewMode === 'grid' && (
-              <div className="flex items-center glass rounded-lg overflow-hidden">
-                {(['small', 'medium', 'large'] as const).map((size, i) => (
-                  <button
-                    key={size}
-                    onClick={() => onCardSizeChange(size)}
-                    className={`px-2.5 py-1.5 text-xs font-medium transition-all ${
-                      cardSize === size ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
-                    }`}
-                    title={`${size.charAt(0).toUpperCase() + size.slice(1)} cards`}
-                  >
-                    {size[0].toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Group by */}
-            <div className="flex items-center glass rounded-lg overflow-hidden">
-              <span className="px-2 text-xs text-white/30">Group:</span>
+            <div className="flex items-center rounded-xl border border-white/[0.07] overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <span className="px-3 text-[11px] text-text-tertiary uppercase tracking-[0.08em] font-semibold">Group:</span>
               {(['none', 'genre', 'price'] as const).map((group) => (
                 <button
                   key={group}
                   onClick={() => onGroupByChange(group)}
-                  className={`px-2 py-1.5 text-xs font-medium transition-all ${
-                    groupBy === group ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
+                  className={`px-3 py-2 text-sm font-medium transition-all duration-150 border-l border-white/[0.07] ${
+                    groupBy === group
+                      ? 'text-primary bg-primary/12'
+                      : 'text-text-tertiary hover:text-text-secondary hover:bg-white/[0.05]'
                   }`}
                 >
                   {group === 'none' ? 'Off' : group.charAt(0).toUpperCase() + group.slice(1)}
@@ -782,63 +936,41 @@ const FilterBar = forwardRef<HTMLInputElement, FilterBarProps>(function FilterBa
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Sort */}
-            <div className="flex items-center glass rounded-lg overflow-hidden">
-              <button
-                onClick={() => onSortChange('votes')}
-                className={`px-3 py-1.5 text-xs font-medium transition-all flex items-center gap-1 ${
-                  sortBy === 'votes' ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
-                }`}
-              >
-                <HiSortDescending className="w-3 h-3" />
-                Top
-              </button>
-              <button
-                onClick={() => onSortChange('title')}
-                className={`px-3 py-1.5 text-xs font-medium transition-all flex items-center gap-1 ${
-                  sortBy === 'title' ? 'text-white bg-white/10' : 'text-white/40 hover:text-white/60'
-                }`}
-              >
-                <HiSortAscending className="w-3 h-3" />
-                A-Z
-              </button>
-            </div>
-
+          <div className="flex items-center gap-2.5">
             {/* Presets */}
             <div className="relative group">
-              <button className="glass glass-hover rounded-lg p-2 text-white/50 hover:text-white transition-colors">
+              <button className="bg-surface-raised border border-border hover:border-border-hover rounded-xl p-2.5 text-text-tertiary hover:text-text-primary transition-all duration-150">
                 <HiBookmark className="w-4 h-4" />
               </button>
-              <div className="absolute right-0 top-full mt-1 w-48 glass-strong rounded-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
+              <div className="absolute right-0 top-full mt-2 w-52 bg-surface-raised border border-border rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 shadow-card-lift">
                 {filterPresets.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-white/40">No saved presets</div>
+                  <div className="px-4 py-2 text-sm text-text-tertiary">No saved presets</div>
                 ) : (
                   filterPresets.map(preset => (
-                    <div key={preset.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-white/5">
+                    <div key={preset.id} className="flex items-center justify-between px-4 py-2 hover:bg-surface-hover transition-colors">
                       <button
                         onClick={() => onLoadPreset(preset)}
-                        className="text-xs text-white/70 hover:text-white flex-1 text-left truncate"
+                        className="text-sm text-text-secondary hover:text-text-primary flex-1 text-left truncate"
                       >
                         {preset.name}
                       </button>
                       <button
                         onClick={() => onDeletePreset(preset.id)}
-                        className="p-1 text-red-400/60 hover:text-red-400 ml-2"
+                        className="p-1.5 text-red-400/60 hover:text-red-400 ml-2 rounded-lg hover:bg-red-500/10 transition-colors"
                       >
-                        <HiTrash className="w-3 h-3" />
+                        <HiTrash className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))
                 )}
-                <div className="border-t border-white/[0.06] mt-1 pt-1">
+                <div className="border-t border-border mt-2 pt-2 mx-2">
                   <button
                     onClick={() => {
                       const name = prompt('Preset name:')
                       if (name) onSavePreset(name)
                     }}
                     disabled={activeFilters.length === 0}
-                    className="w-full px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/5 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     + Save current filters
                   </button>

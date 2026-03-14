@@ -10,27 +10,27 @@ interface SortableGameCardProps {
   game: Game
   onVote: () => void
   onRemove: () => void
-  onPlayTrailer: () => void
-  onRefresh: (gameId: string) => Promise<void>
+  onPlayTrailer?: (game: Game) => void
+  onRefresh?: (gameId: string) => Promise<void>
   onPin?: () => void
-  onCompare?: () => void
   onPollRankSelect?: (gameId: string, rank: number | null) => void
   rank: number
   index: number
   hasVoted: boolean
   isPinned?: boolean
-  isComparing?: boolean
   size?: CardSize
   isDraggable?: boolean
   pollRank?: number | null
   pollVoteCount?: number
   isPollActive?: boolean
   userPollRanks?: { [rank: number]: string }
+  searchTerm?: string
 }
 
 const SortableGameCard = forwardRef<HTMLDivElement, SortableGameCardProps>(function SortableGameCard({
   game,
   isDraggable = true,
+  onRefresh: _onRefresh,
   ...props
 }, ref) {
   const {
@@ -50,9 +50,9 @@ const SortableGameCard = forwardRef<HTMLDivElement, SortableGameCardProps>(funct
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1000 : 'auto',
-  }
+    willChange: isDragging ? 'transform' : 'auto',
+  } as React.CSSProperties
 
-  // Merge refs
   const mergedRef = (node: HTMLDivElement | null) => {
     setNodeRef(node)
     if (typeof ref === 'function') {
@@ -70,7 +70,7 @@ const SortableGameCard = forwardRef<HTMLDivElement, SortableGameCardProps>(funct
       {...listeners}
       className={isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
     >
-      <GameCard game={game} {...props} />
+      <GameCard game={game} {...props} isDragging={isDragging} />
     </div>
   )
 })

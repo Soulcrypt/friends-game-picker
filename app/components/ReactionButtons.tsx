@@ -11,37 +11,37 @@ interface ReactionButtonsProps {
 }
 
 const REACTIONS = [
-  { type: 'played' as ReactionType, icon: HiOutlinePlay, label: 'Played It', activeColor: 'text-emerald-400' },
-  { type: 'own' as ReactionType, icon: HiCheck, label: 'Own It', activeColor: 'text-blue-400' },
-  { type: 'try' as ReactionType, icon: HiStar, label: 'Down to Try', activeColor: 'text-amber-400' },
+  { type: 'played' as ReactionType, icon: HiOutlinePlay, label: 'Played It', activeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  { type: 'own' as ReactionType, icon: HiCheck, label: 'Own It', activeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  { type: 'try' as ReactionType, icon: HiStar, label: 'Down to Try', activeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
 ]
 
 export default function ReactionButtons({ counts, userReactions, onToggle }: ReactionButtonsProps) {
   return (
-    <div className="flex items-center gap-1.5">
-      {REACTIONS.map(({ type, icon: Icon, label, activeColor }) => {
+    <div className="flex items-center gap-2">
+      {REACTIONS.map(({ type, icon: Icon, label, activeClass }) => {
         const isActive = userReactions.includes(type)
         const count = counts[type]
 
         return (
           <motion.button
             key={type}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={(e) => {
               e.stopPropagation()
               onToggle(type)
             }}
             title={label}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all duration-150 min-h-[36px] ${
               isActive
-                ? `glass ${activeColor}`
-                : 'text-white/30 hover:text-white/50 hover:bg-white/[0.03]'
+                ? activeClass
+                : 'bg-transparent border-border text-text-tertiary hover:text-text-secondary hover:border-border-hover hover:bg-surface-hover'
             }`}
           >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="w-4 h-4" />
             {count > 0 && (
-              <span className="text-[10px] font-medium">{count}</span>
+              <span className="text-xs font-semibold">{count}</span>
             )}
           </motion.button>
         )

@@ -1,3 +1,5 @@
+import { selectBestTrailer, selectScreenshots } from './utils/media'
+
 export interface SteamSearchResult {
   type: string
   name: string
@@ -120,26 +122,7 @@ export async function fetchSteamCoverByTitle(title: string): Promise<SteamGameDa
   const match = results[0]
   const details = await getSteamAppDetails(match.id)
 
-  // Get best trailer - prefer highlighted/featured trailers, use mp4 format for better compatibility
-  let trailerUrl: string | undefined
-  if (details?.movies?.length) {
-    // Sort: highlighted first, then by id (higher id = more recent)
-    const sortedMovies = [...details.movies].sort((a, b) => {
-      if (a.highlight && !b.highlight) return -1
-      if (!a.highlight && b.highlight) return 1
-      return b.id - a.id // Higher ID = more recent
-    })
-
-    const bestMovie = sortedMovies[0]
-    // Prefer mp4 max quality, fallback to webm, then to constructed URL
-    if (bestMovie.mp4?.max) {
-      trailerUrl = bestMovie.mp4.max
-    } else if (bestMovie.webm?.max) {
-      trailerUrl = bestMovie.webm.max
-    } else {
-      trailerUrl = getSteamTrailerUrl(bestMovie.id)
-    }
-  }
+  const trailerUrl = selectBestTrailer(details?.movies)
 
   let price: string | undefined
   if (details?.is_free) {
@@ -148,9 +131,7 @@ export async function fetchSteamCoverByTitle(title: string): Promise<SteamGameDa
     price = details.price_overview.final_formatted
   }
 
-  const screenshots = details?.screenshots?.slice(0, 8).map(s => s.path_full)
-
-  // Extract useful categories (multiplayer info)
+  const screenshots = selectScreenshots(details?.screenshots, 8)
   const categories = details?.categories?.map(c => c.description) || []
 
   return {
@@ -176,23 +157,7 @@ export async function fetchGameDetails(steamAppId: number): Promise<SteamGameDat
   const details = await getSteamAppDetails(steamAppId)
   if (!details) return null
 
-  let trailerUrl: string | undefined
-  if (details.movies?.length) {
-    const sortedMovies = [...details.movies].sort((a, b) => {
-      if (a.highlight && !b.highlight) return -1
-      if (!a.highlight && b.highlight) return 1
-      return b.id - a.id
-    })
-
-    const bestMovie = sortedMovies[0]
-    if (bestMovie.mp4?.max) {
-      trailerUrl = bestMovie.mp4.max
-    } else if (bestMovie.webm?.max) {
-      trailerUrl = bestMovie.webm.max
-    } else {
-      trailerUrl = getSteamTrailerUrl(bestMovie.id)
-    }
-  }
+  const trailerUrl = selectBestTrailer(details.movies)
 
   let price: string | undefined
   if (details.is_free) {
@@ -209,7 +174,7 @@ export async function fetchGameDetails(steamAppId: number): Promise<SteamGameDat
     categories: details.categories?.map(c => c.description) || [],
     trailer_url: trailerUrl,
     price,
-    screenshots: details.screenshots?.map(s => s.path_full),
+    screenshots: selectScreenshots(details.screenshots),
     description: details.about_the_game,
     short_description: details.short_description,
     platforms: details.platforms,

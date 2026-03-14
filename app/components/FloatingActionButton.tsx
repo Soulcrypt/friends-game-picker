@@ -93,7 +93,7 @@ export default function FloatingActionButton({
   }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <div className="fixed bottom-6 right-6 z-50 sm:hidden">
           {/* Backdrop when open */}
@@ -103,8 +103,9 @@ export default function FloatingActionButton({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => setIsOpen(false)}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm -z-10"
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10"
               />
             )}
           </AnimatePresence>
@@ -112,22 +113,22 @@ export default function FloatingActionButton({
           {/* Action buttons */}
           <AnimatePresence>
             {isOpen && (
-              <div className="absolute bottom-16 right-0 flex flex-col items-end gap-3 mb-3">
+              <div className="absolute bottom-20 right-0 flex flex-col items-end gap-3 mb-3">
                 {actions.map((action, index) => (
                   <motion.button
                     key={action.label}
-                    initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                    transition={{ delay: (actions.length - 1 - index) * 0.05 }}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ delay: (actions.length - 1 - index) * 0.04, duration: 0.2 }}
                     onClick={action.onClick}
                     disabled={action.disabled}
-                    className="flex items-center gap-3 disabled:opacity-50"
+                    className="flex items-center gap-3 disabled:opacity-40"
                   >
-                    <span className="glass-strong px-3 py-1.5 rounded-lg text-sm font-medium text-white whitespace-nowrap">
+                    <span className="backdrop-blur-xl px-4 py-2.5 rounded-xl text-sm font-medium text-text-primary whitespace-nowrap shadow-lg" style={{ background: 'rgba(22,26,35,0.92)', border: '1px solid rgba(255,255,255,0.09)' }}>
                       {action.label}
                     </span>
-                    <div className="w-12 h-12 rounded-full glass-strong flex items-center justify-center text-white shadow-lg">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-text-primary shadow-lg active:scale-95 transition-transform duration-150" style={{ background: 'rgba(22,26,35,0.92)', border: '1px solid rgba(255,255,255,0.09)', backdropFilter: 'blur(16px)' }}>
                       {action.icon}
                     </div>
                   </motion.button>
@@ -141,17 +142,19 @@ export default function FloatingActionButton({
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            whileTap={{ scale: 0.92 }}
             onClick={handlePrimaryClick}
             onContextMenu={(e) => {
               e.preventDefault()
               handleLongPress()
             }}
-            className="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl relative overflow-hidden group"
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl relative overflow-hidden active:scale-95 transition-all duration-150"
             style={{
-              background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
-              boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)',
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #6F38DC 100%)',
+              boxShadow: isOpen
+                ? '0 8px 32px rgba(139, 92, 246, 0.5)'
+                : '0 4px 20px rgba(139, 92, 246, 0.38)',
             }}
             aria-label={isOpen ? 'Close menu' : 'Add game'}
             aria-expanded={isOpen}
@@ -159,35 +162,34 @@ export default function FloatingActionButton({
           >
             <motion.div
               animate={{ rotate: isOpen ? 45 : 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
               {isOpen ? (
-                <HiX className="w-6 h-6" />
+                <HiX className="w-7 h-7" />
               ) : (
-                <HiPlus className="w-6 h-6" />
+                <HiPlus className="w-7 h-7" />
               )}
             </motion.div>
 
-            {/* Expand indicator - small dots around the button */}
+            {/* Expand indicator */}
             {!isOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 border-2 border-white/20"
-              />
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-400 border-2 border-surface" />
             )}
           </motion.button>
 
-          {/* Swipe up hint */}
-          {!isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] text-white/40 whitespace-nowrap"
-            >
-              Hold for more
-            </motion.div>
-          )}
+          {/* Hint text */}
+          <AnimatePresence>
+            {!isOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.6 }}
+                exit={{ opacity: 0 }}
+                className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] text-text-tertiary whitespace-nowrap"
+              >
+                Hold for more
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>
