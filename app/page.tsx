@@ -21,8 +21,9 @@ import { GameProvider, useGameContext } from '@/lib/game-context'
 import { useAuth } from '@/lib/auth-context'
 import { useKeyboardNavigation, useGridColumns } from '@/lib/hooks/useKeyboardNavigation'
 import type { Game } from '@/lib/types'
-import { HiPlus, HiOutlineCollection, HiAdjustments, HiX, HiShare, HiStar } from 'react-icons/hi'
+import { HiX, HiShare, HiStar } from 'react-icons/hi'
 import { FaGamepad } from 'react-icons/fa'
+import { NoGamesEmptyState, NoFilterMatchesEmptyState } from './components/ui/EmptyState'
 
 
 function HomeContent() {
@@ -86,25 +87,18 @@ function HomeContent() {
   const [showPickerModal, setShowPickerModal] = useState(false)
   const [showCompareModal, setShowCompareModal] = useState(false)
   const [trailerGame, setTrailerGame] = useState<Game | null>(null)
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
 
   // Keyboard navigation
   const gridColumns = useGridColumns(cardSize)
   const anyModalOpen = showAddModal || showImportModal || showPickerModal || showCompareModal || !!trailerGame
 
-  const { focusedId, resetFocus } = useKeyboardNavigation({
+  useKeyboardNavigation({
     items: filteredGames,
     gridColumns: viewMode === 'grid' ? gridColumns : 1,
     enabled: !anyModalOpen && !loading,
     searchInputRef,
-    onSelect: (id) => {
-      // Find game and flip card / show details
-      const game = filteredGames.find(g => g.id === id)
-      if (game) {
-        setSelectedGameId(id)
-        // For list view, we could open a details modal
-        // For grid view, the card handles its own flip state
-      }
+    onSelect: () => {
+      // For grid view, the card handles its own flip state
     },
     onEscape: () => {
       // Close any open modal
@@ -369,9 +363,9 @@ function HomeContent() {
 
         {/* Empty states */}
         {games.length === 0 ? (
-          <EmptyCollectionState onAddGame={() => setShowAddModal(true)} />
+          <NoGamesEmptyState onAddGame={() => setShowAddModal(true)} />
         ) : filteredGames.length === 0 ? (
-          <NoMatchesState onClearFilters={clearFilters} />
+          <NoFilterMatchesEmptyState onClearFilters={clearFilters} />
         ) : viewMode === 'grid' && groupBy !== 'none' && groupedGames ? (
           <GroupedGridView
             groupedGames={groupedGames}
@@ -518,88 +512,6 @@ function HomeContent() {
         gameCount={games.length}
       />
     </main>
-  )
-}
-
-// Empty collection state component
-function EmptyCollectionState({ onAddGame }: { onAddGame: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col items-center justify-center py-32 text-center"
-    >
-      {/* Icon container with subtle glow */}
-      <motion.div
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="relative mb-10"
-      >
-        <div className="absolute inset-0 bg-primary/20 rounded-3xl blur-2xl scale-150" />
-        <div className="relative w-28 h-28 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}>
-          <HiOutlineCollection className="w-14 h-14 text-primary/50" />
-        </div>
-      </motion.div>
-
-      <h2 className="text-2xl font-semibold text-text-primary mb-3" style={{ letterSpacing: '-0.015em' }}>
-        Your collection is empty
-      </h2>
-      <p className="text-base text-text-secondary mb-10 max-w-md leading-relaxed">
-        Add some games to start voting with your friends. Search for any game and it will automatically fetch cover art and details.
-      </p>
-
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onAddGame}
-        className="btn-primary rounded-xl px-8 py-4 text-base flex items-center gap-2.5 transition-all duration-150"
-      >
-        <HiPlus className="w-5 h-5" />
-        Add Your First Game
-      </motion.button>
-    </motion.div>
-  )
-}
-
-// No matches state component
-function NoMatchesState({ onClearFilters }: { onClearFilters: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col items-center justify-center py-32 text-center"
-    >
-      {/* Icon container */}
-      <motion.div
-        animate={{ rotate: [0, 5, -5, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        className="relative mb-10"
-      >
-        <div className="absolute inset-0 bg-amber-500/15 rounded-3xl blur-2xl scale-150" />
-        <div className="relative w-28 h-28 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.15)' }}>
-          <HiAdjustments className="w-14 h-14 text-amber-400/50" />
-        </div>
-      </motion.div>
-
-      <h2 className="text-2xl font-semibold text-text-primary mb-3">
-        No games match your filters
-      </h2>
-      <p className="text-base text-text-tertiary mb-10 max-w-md leading-relaxed">
-        Try adjusting your search term or removing some filters to see more games.
-      </p>
-
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onClearFilters}
-        className="rounded-xl px-8 py-4 text-base font-medium text-text-secondary hover:text-text-primary flex items-center gap-2 transition-all duration-150"
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
-        Clear All Filters
-      </motion.button>
-    </motion.div>
   )
 }
 

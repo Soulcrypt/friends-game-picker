@@ -61,20 +61,17 @@ CREATE POLICY "votes_delete_own" ON votes
 -- STEP 4: Create secure policies for REACTIONS
 -- ============================================
 
--- Check if reactions table exists first
-DO $$
-BEGIN
-  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'reactions') THEN
-    -- Anyone can see reactions
-    EXECUTE 'CREATE POLICY "reactions_select" ON reactions FOR SELECT USING (true)';
+-- Anyone can see reactions
+CREATE POLICY "reactions_select" ON reactions
+  FOR SELECT USING (true);
 
-    -- Anyone can add reactions
-    EXECUTE 'CREATE POLICY "reactions_insert" ON reactions FOR INSERT WITH CHECK (true)';
+-- Anyone can add reactions
+CREATE POLICY "reactions_insert" ON reactions
+  FOR INSERT WITH CHECK (true);
 
-    -- Users can only delete their own reactions
-    EXECUTE 'CREATE POLICY "reactions_delete_own" ON reactions FOR DELETE USING (true)';
-  END IF;
-END $$;
+-- Anyone can delete their own reactions (session-based, enforced at app level)
+CREATE POLICY "reactions_delete_own" ON reactions
+  FOR DELETE USING (true);
 
 -- ============================================
 -- STEP 5: Create a trigger to auto-calculate votes

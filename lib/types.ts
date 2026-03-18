@@ -93,27 +93,6 @@ export interface Vote {
   created_at?: string
 }
 
-export interface RawgSearchResult {
-  id: number
-  name: string
-  slug: string
-  background_image: string | null
-  genres: { id: number; name: string }[]
-  metacritic: number | null
-  released: string | null
-  platforms: { platform: { id: number; name: string } }[] | null
-}
-
-export interface RawgTrailer {
-  id: number
-  name: string
-  preview: string
-  data: {
-    480: string
-    max: string
-  }
-}
-
 // Unified search result from any source
 export interface UnifiedSearchResult {
   id: string // Unique identifier for deduplication

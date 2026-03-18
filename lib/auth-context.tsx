@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (refreshError || !refreshedSession) {
               // Refresh failed, clear session
-              console.log('Session expired, clearing auth state')
+
               setSession(null)
               setUser(null)
               setProfile(null)

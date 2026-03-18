@@ -1,84 +1,101 @@
-# 🚀 QUICKSTART - Get Running in 5 Minutes
+# Quickstart -- Get Running in 5 Minutes
 
-## Step 1: Install Dependencies (1 min)
+## Step 1: Install Dependencies
 
 ```bash
 npm install
 ```
 
-## Step 2: Set Up Supabase (2 min)
+## Step 2: Set Up Supabase
 
-1. Go to https://supabase.com and create a free account
-2. Create a new project (pick any region)
+1. Go to [supabase.com](https://supabase.com) and create a free account
+2. Create a new project (any region)
 3. Wait ~2 minutes for project to initialize
 4. Go to SQL Editor (left sidebar)
-5. Copy everything from `supabase/setup.sql`
-6. Paste and run it in the SQL Editor
+5. Copy everything from `supabase/setup.sql`, paste and run it
+6. (Optional) Run `supabase/secure-policies.sql` for tighter security
 
-## Step 3: Configure Environment (1 min)
-
-1. In Supabase, go to: Settings → API
-2. Copy your `URL` and `anon public` key
-3. Create `.env.local` file:
+## Step 3: Configure Environment
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-4. Paste your credentials into `.env.local`
+Fill in your credentials:
 
-## Step 4: Start Development (30 sec)
+1. In Supabase, go to: Settings > API
+2. Copy your `Project URL` and `anon public` key
+3. Set a site password for `ACCESS_PASSWORD`
+4. (Optional) Add Twitch credentials for IGDB search
+
+## Step 4: Start Development
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 and enter your site password.
 
-## Step 5: Add Game Covers (Optional)
+## Step 5: Add Games
 
-Download covers from [SteamGridDB](https://www.steamgriddb.com/) and place in `public/covers/`
-
-Or use placeholder images for now - the app works without them!
+Games are added through the UI -- click "Add Game" and search by title. Cover art, trailers, and metadata are fetched automatically from Steam/IGDB.
 
 ---
 
-## 🎯 You're Done!
+## You're Done!
 
-The app is now running. Test it:
+Test the app:
 
-1. Click vote buttons (👍)
-2. Try filtering by tags
-3. Search for games
-4. Sort by votes or A-Z
-
-Open in multiple browser tabs to see voting in action!
+1. Search and add a few games
+2. Click vote buttons
+3. Try filtering by tags and sources
+4. Switch between grid/list/compact views
+5. Flip a card to see details and reactions
+6. Open "Pick For Us" to spin the randomizer
+7. Open in multiple browser tabs to see voting across sessions
 
 ---
 
-## 🚀 Ready to Deploy?
+## Optional: Discord OAuth (for Ranked Polls)
+
+1. In Supabase: Authentication > Providers > Discord
+2. Create a Discord app at [discord.com/developers](https://discord.com/developers)
+3. Add Supabase's callback URL to Discord redirects
+4. Users can now login with Discord and create ranked-choice polls
+
+---
+
+## Deploy to Vercel
 
 ```bash
-# Push to GitHub
-git init
-git add .
-git commit -m "Initial commit"
+git init && git add . && git commit -m "Initial commit"
 git branch -M main
 git remote add origin YOUR_REPO_URL
 git push -u origin main
+```
 
-# Deploy to Vercel
-1. Go to vercel.com
+1. Go to [vercel.com](https://vercel.com)
 2. Import your GitHub repo
 3. Add environment variables
-4. Deploy!
-```
+4. Deploy
 
 ---
 
-## 📝 Next Steps
+## Keyboard Shortcuts
 
-- [ ] Add your own games to `data/games.json`
-- [ ] Upload game covers to `public/covers/`
-- [ ] Customize filters in `FilterBar.tsx`
-- [ ] Share with friends and start voting!
+| Key | Action |
+|-----|--------|
+| `A` or `N` | Add Game |
+| `P` | Pick For Us |
+| `I` | Import Games |
+| Arrow keys | Navigate grid |
+| `Escape` | Close modals |
+
+---
+
+## Next Steps
+
+- Invite friends and start voting
+- Set up Discord OAuth for ranked polls
+- Run `supabase/secure-policies.sql` before going public
+- Check README.md for full architecture details

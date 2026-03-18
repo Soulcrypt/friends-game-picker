@@ -162,6 +162,45 @@ CREATE INDEX IF NOT EXISTS idx_games_igdb_id ON games(igdb_id) WHERE igdb_id IS 
 CREATE INDEX IF NOT EXISTS idx_games_primary_source ON games(primary_source);
 
 -- =====================================================
+-- REACTIONS TABLE
+-- =====================================================
+
+-- Reactions (played, own, want to try)
+CREATE TABLE IF NOT EXISTS reactions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  reaction_type TEXT NOT NULL CHECK (reaction_type IN ('played', 'own', 'try')),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(game_id, session_id, reaction_type)
+);
+
+-- Enable RLS
+ALTER TABLE reactions ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist (for re-runs)
+DROP POLICY IF EXISTS "Public reactions read" ON reactions;
+DROP POLICY IF EXISTS "Public reactions insert" ON reactions;
+DROP POLICY IF EXISTS "Public reactions delete" ON reactions;
+
+-- Anyone can see reactions
+CREATE POLICY "Public reactions read" ON reactions
+  FOR SELECT USING (true);
+
+-- Anyone can add reactions
+CREATE POLICY "Public reactions insert" ON reactions
+  FOR INSERT WITH CHECK (true);
+
+-- Anyone can remove reactions (session-based, enforced at app level)
+CREATE POLICY "Public reactions delete" ON reactions
+  FOR DELETE USING (true);
+
+-- Indexes for reactions
+CREATE INDEX IF NOT EXISTS idx_reactions_game_id ON reactions(game_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_session_id ON reactions(session_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_game_session ON reactions(game_id, session_id);
+
+-- =====================================================
 -- DISCORD AUTH + RANKED VOTING SYSTEM
 -- =====================================================
 

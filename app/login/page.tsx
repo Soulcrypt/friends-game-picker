@@ -65,7 +65,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               <span className="text-gradient">What are we playing?</span>
             </h1>
-            <p className="text-white/40 text-sm mt-2">
+            <p className="text-white/60 text-sm mt-2">
               Enter the password to continue
             </p>
           </div>
@@ -73,14 +73,16 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label htmlFor="password" className="sr-only">Password</label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
                 autoFocus
                 autoComplete="current-password"
-                className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/30"
+                className="w-full glass-input rounded-xl px-4 py-3 text-sm text-white placeholder-white/50"
               />
             </div>
 

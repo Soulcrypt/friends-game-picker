@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiSearch, HiX, HiPlus } from 'react-icons/hi'
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap'
 import { FaSteam } from 'react-icons/fa'
 import { SiEpicgames, SiGogdotcom } from 'react-icons/si'
 import { FaXbox } from 'react-icons/fa'
@@ -58,6 +59,7 @@ function getSourceColor(source: GameSource): string {
 }
 
 export default function AddGameModal({ isOpen, onClose, onGameAdded }: AddGameModalProps) {
+  const focusTrapRef = useFocusTrap(isOpen)
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState<SourceTab>('all')
   const [results, setResults] = useState<UnifiedSearchResult[]>([])
@@ -260,7 +262,11 @@ export default function AddGameModal({ isOpen, onClose, onGameAdded }: AddGameMo
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            ref={focusTrapRef}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add a Game"
             className="relative bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
           >
             {/* Header */}
@@ -269,6 +275,7 @@ export default function AddGameModal({ isOpen, onClose, onGameAdded }: AddGameMo
                 <h2 className="text-xl font-semibold text-text-primary">Add a Game</h2>
                 <button
                   onClick={onClose}
+                  aria-label="Close dialog"
                   className="w-9 h-9 rounded-xl bg-surface-raised border border-border hover:border-border-hover flex items-center justify-center text-text-tertiary hover:text-text-primary transition-all duration-150"
                 >
                   <HiX className="w-4 h-4" />

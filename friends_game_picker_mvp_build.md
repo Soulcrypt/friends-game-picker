@@ -1,4 +1,7 @@
-# Friends Game Picker – MVP
+# Friends Game Picker -- MVP Design Spec (Historical)
+
+> **Note:** This document is the original MVP design specification. The app has since evolved
+> significantly beyond this spec. See `README.md` for the current feature set and architecture.
 
 This is a **lean decision tool** for groups picking a game fast. No accounts, no fluff, optimized for voting and sorting.
 

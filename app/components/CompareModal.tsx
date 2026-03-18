@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiX, HiThumbUp, HiStar, HiUsers, HiPlay } from 'react-icons/hi'
 import { FaWindows, FaApple, FaLinux } from 'react-icons/fa'
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap'
 import type { Game } from '@/lib/types'
 
 interface CompareModalProps {
@@ -22,6 +23,8 @@ export default function CompareModal({
   onVote,
   votedGames,
 }: CompareModalProps) {
+  const focusTrapRef = useFocusTrap(isOpen && games.length > 0)
+
   if (!isOpen || games.length === 0) return null
 
   const ComparisonRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -48,7 +51,11 @@ export default function CompareModal({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
+          ref={focusTrapRef}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Compare Games"
           className="glass-strong rounded-2xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
@@ -56,6 +63,7 @@ export default function CompareModal({
             <h2 className="text-xl font-bold text-white">Compare Games</h2>
             <button
               onClick={onClose}
+              aria-label="Close dialog"
               className="p-2 rounded-lg glass text-white/60 hover:text-white transition-colors"
             >
               <HiX className="w-5 h-5" />

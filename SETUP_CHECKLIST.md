@@ -1,168 +1,116 @@
-# 🎮 Friends Game Picker - Project Setup Checklist
+# Friends Game Picker -- Setup Checklist
 
-## ✅ What's Been Created
+## Prerequisites
 
-### Core Application Files
-- [x] Next.js 14 with TypeScript
-- [x] Tailwind CSS with dark theme
-- [x] Main page with game grid
-- [x] GameCard component with vote button
-- [x] FilterBar with search and filters
-- [x] Voting logic with session management
-- [x] Supabase integration
+- [ ] Node.js 18+ installed
+- [ ] Supabase account created ([supabase.com](https://supabase.com))
 
-### Database Setup
-- [x] SQL schema for games and votes
-- [x] Row Level Security policies
-- [x] Sample game data (12 games)
-- [x] Database indexes for performance
+## Setup Steps
 
-### Configuration Files
-- [x] package.json with all dependencies
-- [x] tsconfig.json
-- [x] tailwind.config.js
-- [x] next.config.js
-- [x] .gitignore
-- [x] Environment template
-
-### Documentation
-- [x] Comprehensive README
-- [x] QUICKSTART guide
-- [x] Database setup SQL
-- [x] Covers directory guide
-
----
-
-## 🚀 Next Steps for You
-
-### 1. Open in VS Code
-```bash
-cd friends-game-picker
-code .
-```
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 3. Set Up Supabase (Follow QUICKSTART.md)
-- Create Supabase account
-- Run setup.sql
-- Add credentials to .env.local
+### 2. Database Setup
+- [ ] Create a Supabase project
+- [ ] Run `supabase/setup.sql` in SQL Editor (creates all 6 tables)
+- [ ] (Optional) Run `supabase/secure-policies.sql` for hardened RLS
 
-### 4. Start Development
+### 3. Environment Configuration
+- [ ] Copy `.env.local.example` to `.env.local`
+- [ ] Set `NEXT_PUBLIC_SUPABASE_URL` (from Supabase Settings > API)
+- [ ] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` (from Supabase Settings > API)
+- [ ] Set `ACCESS_PASSWORD` (any password for site access)
+- [ ] (Optional) Set `SUPABASE_SERVICE_ROLE_KEY` for server-side poll results
+- [ ] (Optional) Set `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` for IGDB search
+
+### 4. Discord OAuth (Optional -- for Ranked Polls)
+- [ ] Create Discord application at [discord.com/developers](https://discord.com/developers)
+- [ ] Enable Discord provider in Supabase: Authentication > Providers > Discord
+- [ ] Add Supabase callback URL to Discord app redirects
+
+### 5. Run the App
 ```bash
 npm run dev
 ```
-
-### 5. Add Game Covers
-- Download from SteamGridDB
-- Place in `public/covers/`
-- Name files to match game IDs
+- [ ] Open http://localhost:3000
+- [ ] Enter site password
+- [ ] Add your first game via search
 
 ---
 
-## 📁 Project Structure
+## What's Included
 
-```
-friends-game-picker/
-├── app/
-│   ├── components/
-│   │   ├── GameCard.tsx          ← Individual game cards
-│   │   └── FilterBar.tsx         ← Search, filters, sort
-│   ├── globals.css               ← Dark theme styles
-│   ├── layout.tsx                ← Root layout
-│   └── page.tsx                  ← Main game grid page
-├── lib/
-│   ├── supabase.ts               ← Supabase client
-│   ├── votes.ts                  ← Voting logic
-│   └── types.ts                  ← TypeScript interfaces
-├── data/
-│   └── games.json                ← Initial game data
-├── supabase/
-│   └── setup.sql                 ← Database schema
-├── public/
-│   └── covers/                   ← Game cover images (add these!)
-├── scripts/
-│   └── generate-sql.js           ← Helper to generate SQL
-├── .env.local.example            ← Environment template
-├── QUICKSTART.md                 ← 5-minute setup guide
-└── README.md                     ← Full documentation
-```
+### Pages
+- `/` -- Main game grid with voting, filtering, and all game management
+- `/login` -- Password gate
+- `/polls` -- Poll history with expandable ranked results
 
----
+### API Routes
+- `/api/auth` -- Site password authentication
+- `/api/games/search` -- Unified multi-source game search (Steam + IGDB)
+- `/api/steam/search` and `/api/steam/details` -- Steam API proxy
+- `/api/igdb/search` and `/api/igdb/details` -- IGDB API proxy
+- `/api/polls/[id]/results` -- Server-side poll results
+- `/auth/callback` -- Discord OAuth callback
 
-## 🎯 Features Implemented
+### Database Tables
+- `games` -- Game catalog with multi-source metadata
+- `votes` -- Anonymous session-based upvotes
+- `reactions` -- "Played", "Own", "Want to Try" reactions
+- `profiles` -- Discord user profiles
+- `polls` -- Ranked-choice voting sessions
+- `ranked_votes` -- Individual ranked votes
 
-✅ Dark theme UI with Steam-style cards
-✅ Anonymous voting (localStorage session)
-✅ Real-time vote counting
-✅ Search by game title
-✅ Filter by tags (Free, Paid, Co-op, etc.)
-✅ Sort by votes or A-Z
-✅ Visual priority (gold/silver/bronze glow)
-✅ Responsive grid layout
-✅ Supabase backend ready
-✅ Vercel deployment ready
+### State Management (Split Context Architecture)
+- `GameDataContext` -- Games, votes, loading
+- `FilterContext` -- Search, filters, sort, computed results
+- `ViewContext` -- View mode, card size, grouping
+- `PollContext` -- Active poll, rankings, results
+- `InteractionContext` -- Pinned, compare, presets, custom order
 
----
-
-## 🔧 Ready for Claude Code
-
-This project is now ready for development with Claude Code!
-
-You can use Claude Code to:
-- Add more games to the database
-- Create custom filters
-- Implement the "Quick Pick" feature
-- Add Discord webhooks
-- Customize styling
-- Debug any issues
-
-Just open the project in your terminal and start with:
-```bash
-claude code
-```
+### Features
+- [x] Multi-source game search (Steam + IGDB)
+- [x] Anonymous session-based voting
+- [x] Ranked-choice polls (Discord auth)
+- [x] Reactions (Played / Own / Try)
+- [x] "Pick For Us" slot-machine randomizer
+- [x] Side-by-side game comparison (up to 3)
+- [x] Grid / list / compact views
+- [x] Adjustable card sizes (S/M/L)
+- [x] Group by genre or price
+- [x] Filter by tags, sources, price
+- [x] Saved filter presets
+- [x] Drag & drop custom ordering
+- [x] Flip cards with details + trailer + reactions
+- [x] Gold/silver/bronze glow on top-voted games
+- [x] Recently added games row
+- [x] Full keyboard navigation
+- [x] Site password gate
+- [x] Discord OAuth integration
+- [x] Mobile responsive (FAB, bottom sheets, touch targets)
+- [x] Cyberpunk neon design system
+- [x] Focus-trapped accessible modals
+- [x] ARIA attributes on interactive elements
+- [x] JSON bulk game import
+- [x] Share collection URL
 
 ---
 
-## 📝 Quick Commands
+## Quick Commands
 
 ```bash
-# Development
 npm run dev          # Start dev server
 npm run build        # Build for production
 npm run start        # Start production server
-npm run lint         # Run ESLint
-
-# Database
-node scripts/generate-sql.js  # Generate INSERT statements
-
-# Git
-git init
-git add .
-git commit -m "Initial commit"
 ```
 
 ---
 
-## 🎮 Test It
+## Deployment
 
-1. Open http://localhost:3000
-2. Click vote buttons
-3. Try searching
-4. Toggle filters
-5. Change sort order
-6. Open in multiple tabs to see live voting!
-
----
-
-## 📚 Need Help?
-
-- Read QUICKSTART.md for fast setup
-- Read README.md for detailed info
-- Check supabase/setup.sql for database schema
-- All TypeScript types are in lib/types.ts
-
-**You're all set! Happy coding! 🚀**
+1. Push to GitHub
+2. Import at [vercel.com](https://vercel.com)
+3. Add environment variables
+4. Deploy and share the URL with friends

@@ -32,7 +32,8 @@ export default function ReactionButtons({ counts, userReactions, onToggle }: Rea
               e.stopPropagation()
               onToggle(type)
             }}
-            title={label}
+            aria-label={`${label}${count > 0 ? ` (${count})` : ''}`}
+            aria-pressed={isActive}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all duration-150 min-h-[36px] ${
               isActive
                 ? activeClass

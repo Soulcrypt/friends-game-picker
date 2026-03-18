@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiX, HiUpload, HiDocument } from 'react-icons/hi'
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap'
 import { importGames } from '@/lib/votes'
 import { fetchSteamCoverByTitle } from '@/lib/steam'
 import type { Game } from '@/lib/types'
@@ -22,6 +23,7 @@ interface PreviewGame {
 }
 
 export default function ImportModal({ isOpen, onClose, onImported }: ImportModalProps) {
+  const focusTrapRef = useFocusTrap(isOpen)
   const [preview, setPreview] = useState<PreviewGame[]>([])
   const [importing, setImporting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -127,7 +129,11 @@ export default function ImportModal({ isOpen, onClose, onImported }: ImportModal
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            ref={focusTrapRef}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Import Games"
             className="relative glass-strong rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
           >
             {/* Header */}
@@ -135,6 +141,7 @@ export default function ImportModal({ isOpen, onClose, onImported }: ImportModal
               <h2 className="text-lg font-semibold text-white">Import Games</h2>
               <button
                 onClick={handleClose}
+                aria-label="Close dialog"
                 className="w-8 h-8 rounded-full glass flex items-center justify-center text-white/50 hover:text-white transition-colors"
               >
                 <HiX className="w-4 h-4" />

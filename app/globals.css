@@ -52,8 +52,8 @@
   /* ========== TEXT HIERARCHY ========== */
   --text-primary: 230, 235, 245;          /* #E6EBF5 */
   --text-secondary: 150, 165, 185;        /* #96A4B9 */
-  --text-tertiary: 90, 105, 125;          /* #5A697D */
-  --text-muted: 60, 72, 90;              /* #3C485A */
+  --text-tertiary: 120, 135, 155;         /* #78879B - bumped for AA contrast */
+  --text-muted: 90, 105, 125;             /* #5A697D - bumped for readability */
 
   /* ========== SPACING (8pt grid) ========== */
   --space-1: 4px;

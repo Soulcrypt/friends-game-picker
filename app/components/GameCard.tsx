@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { HiTrash, HiBookmark, HiLightningBolt, HiStar, HiPlay, HiArrowLeft } from 'react-icons/hi'
+import ReactionButtons from './ReactionButtons'
+import { useReactions } from '@/lib/hooks/useReactions'
 import type { Game, CardSize } from '@/lib/types'
 
 interface GameCardProps {
@@ -51,6 +53,7 @@ export default function GameCard({
 }: GameCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isFlipped, setIsFlipped] = useState(false)
+  const reactions = useReactions(game.id)
 
   const isFree = game.price?.toLowerCase() === 'free' || game.price === '$0.00' || game.price === '0'
   const tags = (game.tags ?? []).slice(0, 2)
@@ -166,7 +169,8 @@ export default function GameCard({
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                <HiStar className="w-2.5 h-2.5" />
+                <HiStar className="w-2.5 h-2.5" aria-hidden="true" />
+                <span className="sr-only">Metacritic score: </span>
                 {metaScore}
               </div>
             )}
@@ -195,7 +199,8 @@ export default function GameCard({
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.25, ease: 'easeOut' }}
               >
-                <HiLightningBolt className="w-2.5 h-2.5" />
+                <HiLightningBolt className="w-2.5 h-2.5" aria-hidden="true" />
+                <span className="sr-only">Votes: </span>
                 {game.votes}
               </motion.div>
             )}
@@ -215,9 +220,10 @@ export default function GameCard({
                     color: isPinned ? 'rgb(191,95,255)' : 'rgba(150,165,185,0.8)',
                     backdropFilter: 'blur(8px)',
                   }}
-                  title={isPinned ? 'Unpin' : 'Pin'}
+                  aria-label={isPinned ? `Unpin ${game.title}` : `Pin ${game.title}`}
+                  aria-pressed={isPinned}
                 >
-                  <HiBookmark className="w-3.5 h-3.5" />
+                  <HiBookmark className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               )}
               <button
@@ -229,9 +235,9 @@ export default function GameCard({
                   color: 'rgba(255,69,58,0.8)',
                   backdropFilter: 'blur(8px)',
                 }}
-                title="Remove game"
+                aria-label={`Remove ${game.title}`}
               >
-                <HiTrash className="w-3.5 h-3.5" />
+                <HiTrash className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -314,6 +320,8 @@ export default function GameCard({
               <button
                 className={`btn-vote ${hasVoted ? 'voted' : ''} w-full py-2`}
                 onClick={onVote}
+                aria-pressed={hasVoted}
+                aria-label={`${hasVoted ? 'Remove vote from' : 'Vote for'} ${game.title}`}
               >
                 {!hasVoted && (
                   <span
@@ -322,7 +330,7 @@ export default function GameCard({
                   />
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  <HiLightningBolt className="w-4 h-4" />
+                  <HiLightningBolt className="w-4 h-4" aria-hidden="true" />
                   {hasVoted ? 'VOTED' : 'VOTE'}
                 </span>
               </button>
@@ -396,6 +404,17 @@ export default function GameCard({
                   {tags.map((tag) => <span key={tag} className="tag-pill text-[9px]">{tag}</span>)}
                 </div>
               )}
+
+              {/* Reactions */}
+              {!reactions.loading && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <ReactionButtons
+                    counts={reactions.counts}
+                    userReactions={reactions.userReactions}
+                    onToggle={reactions.handleToggle}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Pinned action buttons — never scroll away */}
@@ -419,9 +438,11 @@ export default function GameCard({
               <button
                 className={`btn-vote ${hasVoted ? 'voted' : ''} w-full py-2`}
                 onClick={onVote}
+                aria-pressed={hasVoted}
+                aria-label={`${hasVoted ? 'Remove vote from' : 'Vote for'} ${game.title}`}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  <HiLightningBolt className="w-4 h-4" />
+                  <HiLightningBolt className="w-4 h-4" aria-hidden="true" />
                   {hasVoted ? 'VOTED' : 'VOTE'}
                 </span>
               </button>

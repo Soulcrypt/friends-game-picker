@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiX, HiRefresh } from 'react-icons/hi'
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap'
 import type { Game } from '@/lib/types'
 
 interface PickerModalProps {
@@ -12,6 +13,7 @@ interface PickerModalProps {
 }
 
 export default function PickerModal({ isOpen, onClose, games }: PickerModalProps) {
+  const focusTrapRef = useFocusTrap(isOpen)
   const [isSpinning, setIsSpinning] = useState(false)
   const [winner, setWinner] = useState<Game | null>(null)
   const [displayedGame, setDisplayedGame] = useState<Game | null>(null)
@@ -32,6 +34,15 @@ export default function PickerModal({ isOpen, onClose, games }: PickerModalProps
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   const spin = () => {
     if (games.length === 0 || isSpinning) return
@@ -87,12 +98,17 @@ export default function PickerModal({ isOpen, onClose, games }: PickerModalProps
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          ref={focusTrapRef}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pick For Us"
           className="relative w-full max-w-md glass-strong rounded-2xl overflow-hidden"
         >
           {/* Close button */}
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full glass flex items-center justify-center text-white/60 hover:text-white transition-colors"
           >
             <HiX className="w-4 h-4" />

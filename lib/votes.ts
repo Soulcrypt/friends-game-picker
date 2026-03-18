@@ -102,7 +102,7 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
   const sourceId = game.rawg_id || game.steam_appid || game.igdb_id
   const id = game.id || (slug && sourceId ? `${slug}-${sourceId}` : slug) || uuidv4()
 
-  console.log('[addGame] Attempting to add:', { title: game.title, id, slug, sourceId })
+
 
   // Check for duplicate by ID only
   const { data: existingById, error: checkError } = await supabase
@@ -116,7 +116,6 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
   }
 
   if (existingById) {
-    console.log('[addGame] Game already exists with ID:', existingById)
     return null
   }
 
@@ -143,8 +142,6 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
     platform_availability: game.platform_availability || undefined,
   }
 
-  console.log('[addGame] Inserting new game:', newGame)
-
   const { data, error } = await supabase
     .from('games')
     .insert(newGame)
@@ -156,7 +153,6 @@ export async function addGame(game: Partial<Game>): Promise<Game | null> {
     return null
   }
 
-  console.log('[addGame] Successfully added:', data?.title)
   return data
 }
 
